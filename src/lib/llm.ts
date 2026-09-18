@@ -75,7 +75,7 @@ export class LocalSLMEngine {
   }
 
   /**
-   * Initializes getLlama, loads model and context
+   * Initializes getLlama, loads model and context with intelligent VRAM safety
    */
   public async initialize(modelPathOverride?: string): Promise<boolean> {
     if (this.model && this.session) return true;
@@ -94,14 +94,60 @@ export class LocalSLMEngine {
       
       // Dynamic import of node-llama-cpp
       const { getLlama } = await import('node-llama-cpp');
-      this.llama = await getLlama();
+
+      // Intelligent Hybrid GPU + CPU Hardware Offload
+      let selectedGpu: 'vulkan' | 'auto' | false = false;
+      let offloadLayers: number | undefined = undefined;
+      const explicitBackend = process.env.LOCAL_BRAIN_SLM_BACKEND?.toLowerCase();
+
+      if (explicitBackend === 'cpu') {
+        selectedGpu = false;
+      } else if (explicitBackend === 'cuda') {
+        selectedGpu = 'auto';
+      } else if (explicitBackend === 'vulkan') {
+        selectedGpu = 'vulkan';
+        offloadLayers = 12;
+      } else {
+        // Auto: Prefer Vulkan for stable hybrid GPU + CPU offloading (e.g. Pascal GTX 1050 Ti)
+        try {
+          const probeVulkan = await getLlama({ gpu: 'vulkan' });
+          if (probeVulkan.gpu === 'vulkan') {
+            selectedGpu = 'vulkan';
+            offloadLayers = 12; // Hybrid CPU + GPU offloading like LM Studio
+            console.log('[LocalSLM] Vulkan hybrid GPU + CPU engine enabled (12 GPU offload layers).');
+          }
+          await probeVulkan.dispose();
+        } catch {
+          // Probe CUDA VRAM capacity if Vulkan is unavailable
+          try {
+            const modelStats = fs.statSync(targetModelPath);
+            const probeCuda = await getLlama();
+            if (Boolean(probeCuda.gpu)) {
+              const vram = await probeCuda.getVramState();
+              const requiredVram = modelStats.size + 1.2 * 1024 * 1024 * 1024;
+              if (vram.free >= requiredVram) {
+                selectedGpu = 'auto';
+              } else {
+                selectedGpu = false;
+              }
+            }
+            await probeCuda.dispose();
+          } catch {
+            selectedGpu = false;
+          }
+        }
+      }
+
+      this.llama = await getLlama({ gpu: selectedGpu });
+      console.log(`[LocalSLM] Initialized backend: ${this.llama.gpu ? 'GPU (' + this.llama.gpu + ')' : 'CPU (AVX2 SIMD)'}`);
       
       this.model = await this.llama.loadModel({
         modelPath: targetModelPath,
+        gpuLayers: offloadLayers,
       });
 
       this.context = await this.model.createContext({
-        contextSize: 2048,
+        contextSize: 1024,
       });
 
       const { LlamaChatSession } = await import('node-llama-cpp');
@@ -121,9 +167,9 @@ export class LocalSLMEngine {
   }
 
   /**
-   * Generate completion with ChatML formatting
+   * Generate completion with ChatML formatting and timeout safety
    */
-  public async generate(prompt: string, options: GenerationOptions = {}): Promise<string> {
+  public async generate(prompt: string, options: GenerationOptions & { timeoutMs?: number } = {}): Promise<string> {
     const isReady = await this.initialize();
     if (!isReady || !this.session) {
       throw new Error('Local SLM is not ready. Ensure a .gguf model exists in models/llm');
@@ -141,11 +187,17 @@ export class LocalSLMEngine {
         finalPrompt += '\n\nOutput valid raw JSON only with no markdown formatting.';
       }
 
-      const response = await this.session.prompt(finalPrompt, {
+      const timeoutMs = options.timeoutMs || 45000;
+      const promptPromise = this.session.prompt(finalPrompt, {
         temperature: options.temperature ?? 0.7,
-        maxTokens: options.maxTokens ?? 1024,
+        maxTokens: options.maxTokens ?? 512,
       });
 
+      const timeoutPromise = new Promise<string>((_, reject) => {
+        setTimeout(() => reject(new Error(`Local SLM generation timed out after ${timeoutMs / 1000}s`)), timeoutMs);
+      });
+
+      const response = await Promise.race([promptPromise, timeoutPromise]);
       return response;
     } catch (err: any) {
       console.error('[LocalSLM] Inference error:', err);

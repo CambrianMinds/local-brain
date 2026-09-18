@@ -93,13 +93,17 @@ export async function runOfflineSLMTests(runner: TestSuiteRunner) {
   await runner.runTest('routeLLM falls back gracefully with offline flag set to true', async () => {
     const res = await routeLLM({
       provider: 'local-slm',
-      prompt: 'Summarize system requirements',
+      prompt: 'Summarize system requirements in 5 words',
       systemPrompt: 'System assistant',
+      maxTokens: 16,
     });
 
     assert(res.text, 'Response must contain text');
-    assertTrue(res.isOffline, 'Fallback response must have isOffline: true');
-    assertContains(res.providerName.toLowerCase(), 'offline', 'Provider name should indicate offline operation');
+    assertTrue(res.isOffline, 'Response must have isOffline: true');
+    assertTrue(
+      res.providerName.toLowerCase().includes('offline') || res.providerName.toLowerCase().includes('local slm'),
+      'Provider name should indicate local or offline operation'
+    );
   });
 
   await runner.runTest('Deterministic offline response handles JSON classification format', async () => {

@@ -6,7 +6,7 @@
     <title>Local Brain — Zero-Egress Autonomous Document Intelligence</title>
     <meta name="description" content="Local Brain is an air-gapped, zero-cloud desktop document intelligence platform powered by an embedded fine-tuned Gemma-4 E2B engine, LanceDB vector retrieval, and SQLite WAL.">
     <meta property="og:title" content="Local Brain — Privacy-First Document Intelligence">
-    <meta property="og:description" content="Embedded on-device AI inference with zero external network egress. Search, categorize, and synthesize your documents locally.">
+    <meta property="og:description" content="Embedded on-device AI inference with zero external network egress. Search, categorize, and synthesize your documents locally with hybrid CPU+GPU acceleration.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://cambrianminds.github.io/local-brain/">
     
@@ -38,8 +38,11 @@
             <nav class="nav-links">
                 <a href="#installers">Installers</a>
                 <a href="#interactive-demo">Live Terminal</a>
+                <a href="#hybrid-offload">CPU + GPU</a>
+                <a href="#summary-engine">Summaries</a>
+                <a href="#providers">Providers</a>
                 <a href="#architecture">Architecture</a>
-                <a href="#models">Models</a>
+                <a href="#faq">FAQ</a>
                 <a href="https://github.com/CambrianMinds/local-brain" target="_blank" rel="noopener noreferrer" class="btn btn-github">
                     <i data-lucide="github"></i>
                     <span>GitHub</span>
@@ -53,7 +56,7 @@
         <section class="hero">
             <div class="hero-badge">
                 <span class="pulse-dot"></span>
-                <span>Air-Gapped · Zero Data Egress · Embedded C++ SLM</span>
+                <span>Air-Gapped · Zero Data Egress · Hybrid Vulkan CPU+GPU · Embedded C++ SLM</span>
             </div>
             
             <h1 class="hero-title">
@@ -68,7 +71,7 @@
             <div class="hero-actions">
                 <a href="#installers" class="btn btn-primary">
                     <i data-lucide="download"></i>
-                    <span>Download Windows Executable</span>
+                    <span>Download Windows Release</span>
                 </a>
                 <a href="#interactive-demo" class="btn btn-secondary">
                     <i data-lucide="terminal"></i>
@@ -92,7 +95,7 @@
                     <i data-lucide="cpu"></i>
                     <div>
                         <strong>Gemma-4 E2B</strong>
-                        <span>Native Q4_K_M GGUF</span>
+                        <span>Hybrid Vulkan / CPU AVX2</span>
                     </div>
                 </div>
                 <div class="spec-item">
@@ -151,6 +154,7 @@
                             <button class="preset-btn active" data-query="arch">Vector Pipeline</button>
                             <button class="preset-btn" data-query="compliance">Zero-Trust Compliance</button>
                             <button class="preset-btn" data-query="synthesis">Technical Synthesis</button>
+                            <button class="preset-btn" data-query="audit">Audit Trail</button>
                         </div>
                     </div>
 
@@ -161,7 +165,7 @@
                         </div>
                         <div class="console-line system">
                             <span class="prompt-symbol">&gt;</span>
-                            <span class="cmd">[LocalSLM] Tensors: 601 · Quant: Q4_K_M · Projector: clip/mmproj (Present)</span>
+                            <span class="cmd">[LocalSLM] Vulkan backend ready · Offloading 12 layers to VRAM · CPU AVX2 fallback active</span>
                         </div>
                         <div class="console-line system success">
                             <span class="prompt-symbol">&gt;</span>
@@ -183,7 +187,7 @@
                         </div>
                         <div class="telemetry-stat">
                             <span class="stat-name">Execution Backend:</span>
-                            <span class="stat-val">AVX2 SIMD In-Process C++</span>
+                            <span class="stat-val">Hybrid Vulkan GPU + CPU AVX2</span>
                         </div>
                         <div class="telemetry-stat">
                             <span class="stat-name">Data Egress:</span>
@@ -194,12 +198,203 @@
             </div>
         </section>
 
+        <!-- Hybrid CPU + GPU Offload Visualizer Section -->
+        <section id="hybrid-offload" class="hybrid-section">
+            <div class="section-header">
+                <span class="section-tag">Hardware Acceleration</span>
+                <h2>Can We Use CPU and GPU Like LM Studio?</h2>
+                <p>Yes. Local Brain dynamically partitions model layers between your GPU VRAM and CPU system RAM, preventing out-of-memory crashes while unlocking maximum hardware speed.</p>
+            </div>
+
+            <div class="interactive-card">
+                <div class="offload-slider-container">
+                    <div class="slider-header">
+                        <div>
+                            <strong>Transformer Layer Offload Distribution</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                                Adjust layers offloaded to GPU VRAM vs executed on CPU AVX2 SIMD:
+                            </p>
+                        </div>
+                        <div class="slider-val-badge" id="offload-val-badge">12 GPU Layers / 14 CPU Layers</div>
+                    </div>
+
+                    <input type="range" id="gpu-layer-slider" class="offload-slider" min="0" max="26" value="12" step="1">
+
+                    <div class="offload-visual-bar">
+                        <div class="bar-gpu" id="bar-gpu" style="width: 46%;">GPU VRAM: 12 Layers (46%)</div>
+                        <div class="bar-cpu" id="bar-cpu" style="width: 54%;">CPU RAM: 14 Layers (54%)</div>
+                    </div>
+                </div>
+
+                <div class="offload-stats-grid">
+                    <div class="stat-pill">
+                        <span>Offload Mode</span>
+                        <strong id="stat-offload-mode" style="color: var(--accent-cyan);">Hybrid Vulkan</strong>
+                    </div>
+                    <div class="stat-pill">
+                        <span>VRAM Allocated</span>
+                        <strong id="stat-vram-alloc">1.82 GB</strong>
+                    </div>
+                    <div class="stat-pill">
+                        <span>System RAM Used</span>
+                        <strong id="stat-ram-alloc">2.38 GB</strong>
+                    </div>
+                    <div class="stat-pill">
+                        <span>Est. Inference Speed</span>
+                        <strong id="stat-speed-alloc" style="color: var(--accent-emerald);">~15.4 tok/s</strong>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding: 14px 18px; background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); border-radius: var(--radius-md); font-size: 12px; line-height: 1.6; color: var(--text-secondary);">
+                    <strong style="color: var(--accent-cyan); display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                        <i data-lucide="info" style="width: 15px; height: 15px;"></i> LM Studio Daemon Integration:
+                    </strong>
+                    Already have LM Studio running with your own custom GPU offload slider? Local Brain automatically detects and connects to LM Studio on <code>http://localhost:1234/v1</code> with zero configuration required. Simply select <strong>LM Studio</strong> from the desktop header or Settings tab.
+                </div>
+            </div>
+        </section>
+
+        <!-- Multi-Level Synthesis & Summary Engine -->
+        <section id="summary-engine" class="summary-section">
+            <div class="section-header">
+                <span class="section-tag">Document Intelligence</span>
+                <h2>Multi-Tier Summary & Synthesis Engine</h2>
+                <p>Generate instant executive briefs, comprehensive technical syntheses, or actionable takeaways with zero data egress.</p>
+            </div>
+
+            <div class="summary-viewer">
+                <!-- Document Source Card -->
+                <div class="summary-doc-source">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="file-text" style="color: var(--accent-cyan); width: 18px; height: 18px;"></i>
+                            <strong style="font-size: 14px;">zero-trust-sharding-spec.md</strong>
+                        </div>
+                        <span class="badge-tag emerald">Indexed · LanceDB</span>
+                    </div>
+
+                    <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); line-height: 1.6; max-height: 240px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 12px; border-radius: var(--radius-sm);">
+                        # Cryptographic Storage Partitioning<br><br>
+                        This specification establishes an immutable data-at-rest encryption standard across distributed edge environments. Each partition is sealed using AES-256-GCM authenticated encryption with sub-keys rotated every 24 hours.<br><br>
+                        LanceDB vector embeddings are derived via local in-process embedding models and stored in read-only write-ahead log chunks to guarantee deterministic zero-knowledge document isolation.
+                    </div>
+
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <span class="badge-tag cyan">#security</span>
+                        <span class="badge-tag cyan">#cryptography</span>
+                        <span class="badge-tag cyan">#compliance</span>
+                        <span class="badge-tag amber">1,840 Words</span>
+                    </div>
+                </div>
+
+                <!-- Generated Summary Output Card -->
+                <div class="summary-card-output">
+                    <div class="summary-tabs">
+                        <button class="summary-tab-btn active" data-level="brief">
+                            <i data-lucide="zap" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
+                            Executive Brief (1-Sentence)
+                        </button>
+                        <button class="summary-tab-btn" data-level="synthesis">
+                            <i data-lucide="book-open" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
+                            Technical Synthesis (3-Paragraph)
+                        </button>
+                        <button class="summary-tab-btn" data-level="bullets">
+                            <i data-lucide="list-checks" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
+                            Key Takeaways (Bullets)
+                        </button>
+                    </div>
+
+                    <div id="summary-content" style="font-size: 13px; line-height: 1.7; color: #e2e8f0; min-height: 160px; padding: 8px 0;">
+                        <!-- Content populated dynamically by main.js -->
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 14px; font-size: 11px; font-family: var(--font-mono); color: var(--text-tertiary);">
+                        <span>Generated by: <strong style="color: var(--accent-cyan);">Embedded Gemma-4 E2B</strong></span>
+                        <span style="color: var(--accent-emerald);">Latency: 412ms · 0 bytes egress</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Provider Comparison Matrix -->
+        <section id="providers" class="matrix-section">
+            <div class="section-header">
+                <span class="section-tag">Flexible Inference Architecture</span>
+                <h2>AI Provider Comparison Matrix</h2>
+                <p>Choose the right inference engine for your threat model, computing budget, and document sensitivity.</p>
+            </div>
+
+            <div class="matrix-table-wrapper">
+                <table class="matrix-table">
+                    <thead>
+                        <tr>
+                            <th>Provider</th>
+                            <th>Privacy & Egress</th>
+                            <th>Hardware Requirements</th>
+                            <th>Supported Models</th>
+                            <th>Primary Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i data-lucide="cpu" style="color: var(--accent-cyan); width: 16px; height: 16px;"></i>
+                                    <strong>Local SLM (Embedded)</strong>
+                                </div>
+                            </td>
+                            <td><span class="badge-tag emerald">100% Air-Gapped (0 B Egress)</span></td>
+                            <td>CPU AVX2 or Vulkan/NVIDIA GPU (2-4GB VRAM)</td>
+                            <td>Gemma-4 E2B Q4_K_M (Bundled) / Custom GGUF</td>
+                            <td>Classified documents, healthcare records, proprietary source code</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i data-lucide="hard-drive" style="color: var(--accent-cyan); width: 16px; height: 16px;"></i>
+                                    <strong>LM Studio</strong>
+                                </div>
+                            </td>
+                            <td><span class="badge-tag emerald">Local Loopback (localhost:1234)</span></td>
+                            <td>Uses LM Studio host GPU / CPU settings</td>
+                            <td>Any GGUF model loaded in LM Studio</td>
+                            <td>Local model experimentation, larger 8B/14B/32B parameter models</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i data-lucide="cloud" style="color: var(--accent-amber); width: 16px; height: 16px;"></i>
+                                    <strong>OpenRouter</strong>
+                                </div>
+                            </td>
+                            <td><span class="badge-tag amber">Cloud API (HTTPS)</span></td>
+                            <td>Zero GPU / Low RAM requirements</td>
+                            <td>Free models (Mistral 7B, Gemma 2 9B, Qwen)</td>
+                            <td>Low-power laptops, public document indexing without local compute</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i data-lucide="sparkles" style="color: #a855f7; width: 16px; height: 16px;"></i>
+                                    <strong>Google Gemini</strong>
+                                </div>
+                            </td>
+                            <td><span class="badge-tag amber">Cloud API (HTTPS)</span></td>
+                            <td>Zero local hardware requirements</td>
+                            <td>Gemini 1.5 Flash / Pro (1M+ Token Context)</td>
+                            <td>Massive multi-document cross-synthesis across hundreds of files</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <!-- Dual Packaging & Installers Section -->
         <section id="installers" class="installers-section">
             <div class="section-header">
                 <span class="section-tag">Release Distributions</span>
-                <h2>Packaging Options</h2>
-                <p>Choose between the all-in-one air-gapped bundle or the ultra-compact installer.</p>
+                <h2>Packaging & Distribution Options</h2>
+                <p>Choose between the turn-key air-gapped bundle or the lightweight bring-your-own-model setup.</p>
             </div>
 
             <div class="installer-grid">
@@ -210,17 +405,17 @@
                         <div class="card-icon"><i data-lucide="package-check"></i></div>
                         <div>
                             <h3>Full Setup ("Batteries Included")</h3>
-                            <span class="card-filesize">~3.6 GB Installer</span>
+                            <span class="card-filesize">~3.6 GB Complete Suite</span>
                         </div>
                     </div>
                     <p class="card-desc">
-                        Complete turn-key workstation with fine-tuned <strong>Gemma-4 E2B Q4_K_M (3.42 GB)</strong> and Multimodal Projector (985 MB) bundled inside <code>extraResources</code>.
+                        Complete turn-key workstation with fine-tuned <strong>Gemma-4 E2B Q4_K_M (3.42 GB)</strong> and Multimodal Projector (985 MB) pre-configured and ready to run immediately.
                     </p>
                     <ul class="card-features">
                         <li><i data-lucide="check"></i> 100% Offline from the first launch</li>
                         <li><i data-lucide="check"></i> Pre-bundled fine-tuned Gemma-4 E2B</li>
                         <li><i data-lucide="check"></i> Zero post-install model downloads</li>
-                        <li><i data-lucide="check"></i> NSIS Windows Installer with directory select</li>
+                        <li><i data-lucide="check"></i> Hybrid Vulkan GPU + CPU AVX2 acceleration</li>
                     </ul>
                     <div class="card-actions">
                         <div class="quick-install-box">
@@ -243,7 +438,7 @@
                         <div class="card-icon"><i data-lucide="feather"></i></div>
                         <div>
                             <h3>Minimal Setup ("Bring Your Own GGUF")</h3>
-                            <span class="card-filesize">~85 MB Installer</span>
+                            <span class="card-filesize">~85 MB NSIS Installer</span>
                         </div>
                     </div>
                     <p class="card-desc">
@@ -298,31 +493,88 @@
                 <div class="arch-card">
                     <div class="arch-icon"><i data-lucide="sparkles"></i></div>
                     <h3>Multi-Provider Router</h3>
-                    <p>Switch between the on-device Gemma 4 SLM, local LM Studio daemons, curated free OpenRouter models, and Google Gemini from the desktop titlebar.</p>
+                    <p>Switch between the on-device Gemma 4 SLM, local LM Studio daemons, curated free OpenRouter models, and Google Gemini with immediate persistence.</p>
+                </div>
+                <div class="arch-card">
+                    <div class="arch-icon"><i data-lucide="trash-2"></i></div>
+                    <h3>One-Click Data Sanitization</h3>
+                    <p>Nuke example seed data with a single click. Clears all SQLite tables, LanceDB indices, and local storage state for a spotless production workspace.</p>
+                </div>
+                <div class="arch-card">
+                    <div class="arch-icon"><i data-lucide="share-2"></i></div>
+                    <h3>Obsidian Vault Export</h3>
+                    <p>Export generated wikis and multi-tier document summaries directly to standard Markdown vaults compatible with Obsidian, Logseq, and Foam.</p>
                 </div>
             </div>
         </section>
 
-        <!-- Models & Fine-Tuning Section -->
-        <section id="models" class="models-section">
+        <!-- Frequently Asked Questions Accordion -->
+        <section id="faq" class="faq-section">
             <div class="section-header">
-                <span class="section-tag">Enterprise Workloads</span>
-                <h2>Zero-Egress Domain Workloads</h2>
-                <p>Engineered for high-assurance private enterprise documentation, compliance analysis, and technical research.</p>
+                <span class="section-tag">Common Questions</span>
+                <h2>Frequently Asked Questions</h2>
+                <p>Everything you need to know about hardware requirements, air-gap security, and local intelligence.</p>
             </div>
 
-            <div class="domains-grid">
-                <div class="domain-card">
-                    <h4>Technical Architecture & Systems</h4>
-                    <p>High-precision ingestion and semantic indexing for distributed system specifications, API contracts, and internal engineering wikis.</p>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>Can I use CPU and GPU simultaneously like LM Studio?</span>
+                        <i data-lucide="chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        Yes. Local Brain utilizes <code>node-llama-cpp</code> with a bundled Vulkan compute backend that natively supports hybrid offloading. You can allocate a set number of transformer layers to your GPU's VRAM (e.g., 12 layers on a 4GB card) while streaming the remaining layers through CPU AVX2 SIMD in system memory. Alternatively, if you run LM Studio locally, Local Brain integrates seamlessly via its <code>http://localhost:1234/v1</code> endpoint.
+                    </div>
                 </div>
-                <div class="domain-card">
-                    <h4>Regulatory & Compliance Auditing</h4>
-                    <p>On-device automated verification for strict regulatory compliance, legal discovery, and internal enterprise security policies.</p>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>What happens if my GPU runs out of VRAM?</span>
+                        <i data-lucide="chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        Local Brain includes an automatic VRAM Safe Mode. If your GPU has limited free VRAM (or experiences a CUDA allocation error such as CUDA 108), Local Brain automatically catches the event and falls back to CPU AVX2 SIMD execution without crashing your application. Your summaries and vector queries will always succeed.
+                    </div>
                 </div>
-                <div class="domain-card">
-                    <h4>Private Institutional Research</h4>
-                    <p>Deep cross-document synthesis and immutable timeline versioning for proprietary whitepapers and organizational intelligence.</p>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>How do I delete or nuke the initial example data?</span>
+                        <i data-lucide="chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        You can clean your library at any time by clicking the <strong>Nuke Example Data</strong> button located in the Library toolbar, or under <strong>Settings &gt; Data Management</strong>. This wipes all sample documents, LanceDB vectors, and generated wikis from SQLite and local storage, leaving a clean, empty canvas ready for your private files.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>Can I bring my own GGUF models into the Minimal Edition?</span>
+                        <i data-lucide="chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        Absolutely. In the Minimal Edition, simply drop any compatible <code>.gguf</code> model (Llama 3, Gemma 2, Mistral, Qwen 2.5, Phi-3) into the <code>models/llm/</code> directory. Local Brain automatically detects the model on startup and initializes the local C++ inference runtime.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>Does Local Brain send telemetry or analytics to external servers?</span>
+                        <i data-lucide="chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        Zero. When using the embedded Local SLM or a local LM Studio server, all document ingestion, optical chunking, LanceDB vector storage, and neural inference occur strictly in local memory. There are no telemetry pings, error reporting beacons, or analytics collectors built into the binary.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>Can I export synthesized wikis and summaries to Obsidian?</span>
+                        <i data-lucide="chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        Yes. Every document summary and AI-generated wiki page can be exported to standard CommonMark Markdown with YAML frontmatter tags. You can point the export target to an existing Obsidian vault or markdown folder.
+                    </div>
                 </div>
             </div>
         </section>

@@ -141,6 +141,7 @@ export async function executeLLM(options: {
   prompt: string;
   systemPrompt?: string;
   jsonMode?: boolean;
+  maxTokens?: number;
 }): Promise<{ text: string; providerName: string }> {
   const result = await routeLLM(options);
   return {

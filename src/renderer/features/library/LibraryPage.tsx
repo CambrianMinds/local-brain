@@ -10,6 +10,8 @@ import {
   Files,
   FileCheck,
   FolderOpen,
+  Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import { DocumentItem, DocumentType } from '../../types';
 import { DocumentCard } from '../../components/DocumentCard';
@@ -21,6 +23,8 @@ interface LibraryPageProps {
   onDeleteDocument: (id: string) => void;
   onOpenUpload: () => void;
   onOpenCommandPalette: () => void;
+  onNukeLibrary?: () => void;
+  onResetRepository?: () => void;
 }
 
 export const LibraryPage: React.FC<LibraryPageProps> = ({
@@ -30,6 +34,8 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
   onDeleteDocument,
   onOpenUpload,
   onOpenCommandPalette,
+  onNukeLibrary,
+  onResetRepository,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -46,27 +52,26 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
       if (selectedType !== 'all' && doc.fileType !== selectedType) {
         return false;
       }
-      // Search filter
+      // Search query
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesTitle = doc.title.toLowerCase().includes(q);
-        const matchesTags = doc.tags.some((t) => t.toLowerCase().includes(q));
-        const matchesSummary = doc.summary?.brief?.toLowerCase().includes(q);
-        if (!matchesTitle && !matchesTags && !matchesSummary) return false;
+        const query = searchQuery.toLowerCase();
+        const matchTitle = doc.title.toLowerCase().includes(query);
+        const matchContent = doc.content.toLowerCase().includes(query);
+        const matchTags = doc.tags.some((t) => t.toLowerCase().includes(query));
+        const matchSummary =
+          doc.summary?.brief?.toLowerCase().includes(query) ||
+          doc.summary?.detailed?.toLowerCase().includes(query);
+        return matchTitle || matchContent || matchTags || matchSummary;
       }
       return true;
     }).sort((a, b) => {
+      if (sortBy === 'title') return a.title.localeCompare(b.title);
+      if (sortBy === 'size') return b.fileSize - a.fileSize;
+      if (sortBy === 'chunks') return b.chunksCount - a.chunksCount;
       if (sortBy === 'date') {
-        return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
-      }
-      if (sortBy === 'title') {
-        return a.title.localeCompare(b.title);
-      }
-      if (sortBy === 'size') {
-        return b.fileSize - a.fileSize;
-      }
-      if (sortBy === 'chunks') {
-        return b.chunksCount - a.chunksCount;
+        const dateA = new Date(a.updatedAt || a.createdAt).getTime();
+        const dateB = new Date(b.updatedAt || b.createdAt).getTime();
+        return dateB - dateA;
       }
       return 0;
     });
@@ -130,6 +135,23 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {documents.length > 0 && onNukeLibrary && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Nuke Example Data: Are you sure you want to permanently delete all sample documents and start with an empty library?')) {
+                    onNukeLibrary();
+                  }
+                }}
+                className="btn btn-secondary btn-sm"
+                id="library-nuke-button"
+                title="Wipe example documents from library"
+                style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }}
+              >
+                <Trash2 size={13} />
+                <span>Nuke Example Data</span>
+              </button>
+            )}
+
             <button
               onClick={onOpenUpload}
               className="btn btn-primary btn-sm"
@@ -282,16 +304,26 @@ export const LibraryPage: React.FC<LibraryPageProps> = ({
             >
               <FolderOpen size={28} style={{ opacity: 0.4 }} />
             </div>
-            <h3 style={{ fontSize: '16px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-              No documents found
+            <h3 style={{ fontSize: '16px', color: 'var(--text-primary)', marginBottom: '6px' }}>
+              {documents.length === 0 ? 'Library is Clean & Empty' : 'No documents found'}
             </h3>
-            <p style={{ fontSize: '13px', maxWidth: '360px', marginBottom: '16px' }}>
-              No documents matched your filter criteria in category "{selectedCategory}".
+            <p style={{ fontSize: '13px', maxWidth: '380px', marginBottom: '16px', color: 'var(--text-secondary)' }}>
+              {documents.length === 0
+                ? 'All example documents have been nuked. Import your own PDF, Markdown, or text files to begin building your private offline knowledge base.'
+                : `No documents matched your filter criteria in category "${selectedCategory}".`}
             </p>
-            <button onClick={onOpenUpload} className="btn btn-primary btn-sm">
-              <Upload size={14} />
-              <span>Import Documents</span>
-            </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button onClick={onOpenUpload} className="btn btn-primary btn-sm">
+                <Upload size={14} />
+                <span>Import Documents</span>
+              </button>
+              {documents.length === 0 && onResetRepository && (
+                <button onClick={onResetRepository} className="btn btn-ghost btn-sm" style={{ color: 'var(--text-tertiary)' }}>
+                  <RefreshCw size={13} />
+                  <span>Restore Example Data</span>
+                </button>
+              )}
+            </div>
           </div>
         ) : viewMode === 'grid' ? (
           <div

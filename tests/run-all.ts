@@ -7,7 +7,12 @@
     getOpenRouterModels: async () => ([]),
     getLmStudioModels: async () => ([]),
     askAI: async () => ({ content: 'Mock response' }),
-    summarizeAI: async () => ({ content: 'Mock summary' }),
+    summarizeAI: async () => ({
+      brief: 'High-level synthesis of verified architecture protocol.',
+      detailed: 'Detailed analysis of zero-cloud vector indexing and offline retrieval mechanisms.',
+      keyPoints: ['Atomic vector transactions', 'Zero telemetry egress', 'Persistent WAL indexing'],
+      provider: 'Local SLM Engine',
+    }),
     categorizeAI: async () => ({ category: 'Work', tags: ['mock'] }),
     wikiAI: async (payload: any) => ({ content: `# ${payload.topic || 'Mock Topic'}\n\n## Section 1\nContent\n\n## Section 2\nContent\n\n## Section 3\nContent\n\n[[Vector Databases]]` }),
     wikiSectionAI: async (payload: any) => ({ content: `## ${payload.sectionHeading || 'Heading'}\nMock regenerated content\n2. DiskANN` }),
@@ -23,6 +28,7 @@ import { runVersioningTests } from './versioning-and-state.test.ts';
 import { runUiUxTests } from './ui-ux-flow.test.ts';
 import { runLivingWikiTests } from './wiki-living-engine.test.ts';
 import { runOfflineSLMTests } from './offline-slm.test.ts';
+import { runProductionReadinessTests } from './production-readiness.test.ts';
 
 async function main() {
   console.log('\n\x1b[1m\x1b[36m=======================================================');
@@ -33,23 +39,26 @@ async function main() {
   const startTime = Date.now();
 
   try {
-    console.log('\x1b[1m\x1b[34m[1/5] Running Backend API E2E Tests...\x1b[0m');
+    console.log('\x1b[1m\x1b[34m[1/7] Running Backend API E2E Tests...\x1b[0m');
     await runApiE2ETests(runner);
 
-    console.log('\n\x1b[1m\x1b[34m[2/5] Running Local Intelligence Engine & Hybrid Search Tests...\x1b[0m');
+    console.log('\n\x1b[1m\x1b[34m[2/7] Running Local Intelligence Engine & Hybrid Search Tests...\x1b[0m');
     await runLocalEngineTests(runner);
 
-    console.log('\n\x1b[1m\x1b[34m[3/5] Running Document Versioning & State Integrity Tests...\x1b[0m');
+    console.log('\n\x1b[1m\x1b[34m[3/7] Running Document Versioning & State Integrity Tests...\x1b[0m');
     await runVersioningTests(runner);
 
-    console.log('\n\x1b[1m\x1b[34m[4/5] Running UI/UX Formats & Workflow Verification Tests...\x1b[0m');
+    console.log('\n\x1b[1m\x1b[34m[4/7] Running UI/UX Formats & Workflow Verification Tests...\x1b[0m');
     await runUiUxTests(runner);
 
-    console.log('\n\x1b[1m\x1b[34m[5/6] Running Living Personal Wiki & Knowledge Vault Tests...\x1b[0m');
+    console.log('\n\x1b[1m\x1b[34m[5/7] Running Living Personal Wiki & Knowledge Vault Tests...\x1b[0m');
     await runLivingWikiTests(runner);
 
-    console.log('\n\x1b[1m\x1b[34m[6/6] Running Offline SLM Engine & Transformers Embedder Tests...\x1b[0m');
+    console.log('\n\x1b[1m\x1b[34m[6/7] Running Offline SLM Engine & Transformers Embedder Tests...\x1b[0m');
     await runOfflineSLMTests(runner);
+
+    console.log('\n\x1b[1m\x1b[34m[7/7] Running Production Readiness & Crash Prevention Tests...\x1b[0m');
+    await runProductionReadinessTests(runner);
   } catch (fatalErr: any) {
     console.error('\n\x1b[31mFatal test suite error:\x1b[0m', fatalErr);
   }

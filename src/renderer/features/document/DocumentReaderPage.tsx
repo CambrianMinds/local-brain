@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ArrowLeft,
   Sparkles,
@@ -80,7 +80,7 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
   const [editChangeDescription, setEditChangeDescription] = useState('');
   const [expandedVersionId, setExpandedVersionId] = useState<string | null>(null);
 
-  // Quick provider selector state in reader chat
+  // Quick provider selector state in reader chat and summary
   const [readerProvider, setReaderProvider] = useState<string>(settings?.aiProvider || aiProvider || 'local-slm');
   const [readerModel, setReaderModel] = useState<string>(
     settings?.aiProvider === 'local-slm'
@@ -91,6 +91,40 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
       ? settings?.chatModel || 'meta-llama-3.2-3b-instruct'
       : 'gemini-3.8-flash'
   );
+
+  // Synchronize readerProvider and readerModel whenever settings.aiProvider updates
+  useEffect(() => {
+    const activeProv = settings?.aiProvider || aiProvider || 'local-slm';
+    setReaderProvider(activeProv);
+    if (activeProv === 'local-slm') {
+      setReaderModel('gemma-4-e2b-it.Q4_K_M.gguf');
+    } else if (activeProv === 'openrouter') {
+      setReaderModel(settings?.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free');
+    } else if (activeProv === 'lmstudio') {
+      setReaderModel(settings?.chatModel || 'meta-llama-3.2-3b-instruct');
+    } else {
+      setReaderModel('gemini-3.8-flash');
+    }
+  }, [settings?.aiProvider, aiProvider, settings?.openRouterModel, settings?.chatModel]);
+
+  const handleReaderProviderChange = (newProv: string) => {
+    setReaderProvider(newProv);
+    let newModel = 'gemini-3.8-flash';
+    if (newProv === 'local-slm') {
+      newModel = 'gemma-4-e2b-it.Q4_K_M.gguf';
+    } else if (newProv === 'openrouter') {
+      newModel = settings?.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free';
+    } else if (newProv === 'lmstudio') {
+      newModel = settings?.chatModel || 'meta-llama-3.2-3b-instruct';
+    }
+    setReaderModel(newModel);
+    if (onUpdateSettings && settings) {
+      onUpdateSettings({
+        ...settings,
+        aiProvider: newProv as any,
+      });
+    }
+  };
 
   // Ensure document has at least a baseline version if none exists
   const versions: DocumentVersion[] = useMemo(() => {
@@ -547,14 +581,30 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
             {/* 1. SUMMARY TAB */}
             {activeInspectorTab === 'summary' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontWeight: 600 }}>
-                    Multi-Level AI Summary
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                      Multi-Level AI Summary
+                    </span>
+                    <select
+                      className="input-base"
+                      id="summary-provider-select"
+                      value={readerProvider}
+                      onChange={(e) => handleReaderProviderChange(e.target.value)}
+                      style={{ padding: '1px 6px', fontSize: '10px', height: '22px' }}
+                      title="Active AI Inference Engine for Summary"
+                    >
+                      <option value="local-slm">Local SLM (Gemma-4 E2B)</option>
+                      <option value="openrouter">OpenRouter (Free Models)</option>
+                      <option value="lmstudio">LM Studio (Local)</option>
+                      <option value="gemini">Gemini (Server)</option>
+                    </select>
+                  </div>
                   <button
                     onClick={handleRegenerateSummary}
                     disabled={isRegeneratingSummary}
                     className="btn btn-ghost btn-sm"
+                    id="regenerate-summary-btn"
                     style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--accent)' }}
                   >
                     <RefreshCw size={11} className={isRegeneratingSummary ? 'animate-spin' : ''} />
@@ -638,19 +688,7 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
                     <select
                       className="input-base"
                       value={readerProvider}
-                      onChange={(e) => {
-                        const newProv = e.target.value;
-                        setReaderProvider(newProv);
-                        if (newProv === 'local-slm') {
-                          setReaderModel('gemma-4-e2b-it.Q4_K_M.gguf');
-                        } else if (newProv === 'openrouter') {
-                          setReaderModel(settings?.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free');
-                        } else if (newProv === 'lmstudio') {
-                          setReaderModel(settings?.chatModel || 'meta-llama-3.2-3b-instruct');
-                        } else {
-                          setReaderModel('gemini-3.8-flash');
-                        }
-                      }}
+                      onChange={(e) => handleReaderProviderChange(e.target.value)}
                       style={{ padding: '2px 6px', fontSize: '11px', height: '26px' }}
                     >
                       <option value="local-slm">Local SLM (Gemma-4 E2B GGUF)</option>

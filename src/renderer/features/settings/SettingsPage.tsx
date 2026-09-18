@@ -26,6 +26,7 @@ interface SettingsPageProps {
   settings: SettingsConfig;
   onSaveSettings: (settings: SettingsConfig) => void;
   onResetRepository: () => void;
+  onNukeLibrary?: () => void;
   documentCount: number;
 }
 
@@ -33,9 +34,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   settings,
   onSaveSettings,
   onResetRepository,
+  onNukeLibrary,
   documentCount,
 }) => {
   const [current, setCurrent] = useState<SettingsConfig>(settings);
+
+  useEffect(() => {
+    setCurrent(settings);
+  }, [settings]);
+
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'success' | 'failed' | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
@@ -159,6 +166,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setTimeout(() => setSavedBanner(false), 2600);
   };
 
+  const handleSelectProvider = (provider: 'local-slm' | 'lmstudio' | 'openrouter' | 'gemini') => {
+    const updated = { ...current, aiProvider: provider };
+    setCurrent(updated);
+    onSaveSettings(updated);
+    setSavedBanner(true);
+    setTimeout(() => setSavedBanner(false), 2600);
+  };
+
   // Filtered OpenRouter models
   const displayedOpenRouterModels = openRouterModels.filter((m) => {
     if (!onlyFreeModels) return true;
@@ -230,7 +245,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
               {/* Card 0: Local SLM */}
               <div
-                onClick={() => setCurrent({ ...current, aiProvider: 'local-slm' })}
+                onClick={() => handleSelectProvider('local-slm')}
                 style={{
                   padding: '16px',
                   borderRadius: 'var(--radius-md)',
@@ -273,7 +288,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
               {/* Card 1: LM Studio */}
               <div
-                onClick={() => setCurrent({ ...current, aiProvider: 'lmstudio' })}
+                onClick={() => handleSelectProvider('lmstudio')}
                 style={{
                   padding: '16px',
                   borderRadius: 'var(--radius-md)',
@@ -316,7 +331,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
               {/* Card 2: OpenRouter */}
               <div
-                onClick={() => setCurrent({ ...current, aiProvider: 'openrouter' })}
+                onClick={() => handleSelectProvider('openrouter')}
                 style={{
                   padding: '16px',
                   borderRadius: 'var(--radius-md)',
@@ -359,7 +374,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
               {/* Card 3: Google Gemini */}
               <div
-                onClick={() => setCurrent({ ...current, aiProvider: 'gemini' })}
+                onClick={() => handleSelectProvider('gemini')}
                 style={{
                   padding: '16px',
                   borderRadius: 'var(--radius-md)',
@@ -862,18 +877,37 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
 
           {/* Bottom Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px' }}>
-            <button
-              onClick={() => {
-                if (window.confirm('Reset the repository to the initial seed documents and version history?')) {
-                  onResetRepository();
-                }
-              }}
-              className="btn btn-danger btn-sm"
-            >
-              <Trash2 size={13} />
-              <span>Reset Database to Seed State</span>
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {onNukeLibrary && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('NUKE ALL LIBRARY DATA: Are you sure? This will delete all sample documents and wiki pages, leaving your vault completely empty.')) {
+                      onNukeLibrary();
+                    }
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  id="settings-nuke-button"
+                  style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#f87171' }}
+                >
+                  <Trash2 size={13} />
+                  <span>Nuke All Library Data</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  if (window.confirm('Reset the repository to the initial seed documents and version history?')) {
+                    onResetRepository();
+                  }
+                }}
+                className="btn btn-ghost btn-sm"
+                style={{ color: 'var(--text-tertiary)' }}
+              >
+                <RefreshCw size={13} />
+                <span>Restore Seed Documents</span>
+              </button>
+            </div>
 
             <button onClick={handleSave} className="btn btn-primary btn-md">
               Save Configuration

@@ -156,7 +156,7 @@ Generate three distinct levels of summary in valid JSON format with keys:
 3. "keyPoints": An array of 4-6 bullet point takeaways.
 
 Document text:
-${content.slice(0, 6000)}
+${content.slice(0, 3000)}
 
 Output raw valid JSON only:
 {
@@ -166,13 +166,24 @@ Output raw valid JSON only:
 }`;
 
   try {
-    const result = await executeLLM({ provider, model, apiKey, lmStudioUrl, prompt, systemPrompt: 'You are an analytical document synthesis assistant. Output valid JSON only.', jsonMode: true });
+    const result = await executeLLM({
+      provider,
+      model,
+      apiKey,
+      lmStudioUrl,
+      prompt,
+      systemPrompt: 'You are an analytical document synthesis assistant. Output valid JSON only.',
+      jsonMode: true,
+      maxTokens: 512,
+    });
     const cleaned = result.text.replace(/```json\n?|\n?```/g, '').trim();
     const parsed = JSON.parse(cleaned);
     if (parsed.brief && parsed.detailed && Array.isArray(parsed.keyPoints)) {
       return { brief: parsed.brief, detailed: parsed.detailed, keyPoints: parsed.keyPoints, provider: result.providerName };
     }
-  } catch {}
+  } catch (err: any) {
+    console.warn('[ai:summarize] LLM generation failed, using structured offline summary fallback:', err?.message || err);
+  }
 
   const paragraphs = content.split('\n\n').filter((p: string) => p.trim().length > 30);
   const firstPara = paragraphs[0] || content.slice(0, 200);

@@ -190,6 +190,19 @@ export default function App() {
     setActiveTab('library');
   };
 
+  const handleNukeLibrary = () => {
+    setDocuments([]);
+    setWikis([]);
+    setActiveDocument(null);
+    try {
+      localStorage.setItem(STORAGE_DOCS_KEY, JSON.stringify([]));
+      localStorage.setItem(STORAGE_WIKIS_KEY, JSON.stringify([]));
+    } catch (e) {
+      console.error('Failed to clear local library cache:', e);
+    }
+    setActiveTab('library');
+  };
+
   const totalChunks = documents.reduce((acc, d) => acc + d.chunksCount, 0);
 
   return (
@@ -238,6 +251,8 @@ export default function App() {
               onDeleteDocument={handleDeleteDocument}
               onOpenUpload={() => setIsUploadModalOpen(true)}
               onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+              onNukeLibrary={handleNukeLibrary}
+              onResetRepository={handleResetRepository}
             />
           )}
 
@@ -274,6 +289,7 @@ export default function App() {
               settings={settings}
               onSaveSettings={setSettings}
               onResetRepository={handleResetRepository}
+              onNukeLibrary={handleNukeLibrary}
               documentCount={documents.length}
             />
           )}
