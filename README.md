@@ -8,7 +8,6 @@
     <a href="#ai-providers--model-persistence">AI Providers</a> ·
     <a href="#library-management--nuke-seed-data">Library & Nuke Data</a> ·
     <a href="#living-personal-wiki">Personal Wiki</a> ·
-    <a href="#automated-test-suite">Test Suite</a> ·
     <a href="#installers--quick-start">Quick Install</a> ·
     <a href="https://cambrianminds.github.io/local-brain/">Live Showcase</a>
   </p>
@@ -148,79 +147,6 @@ Local Brain turns isolated documents into an evolving knowledge encyclopedia:
 - **Discrepancy & Contradiction Detection**: Analyzes multiple documents covering the same topic and flags conflicting numbers, dates, or architectural claims.
 - **Knowledge Gap Analysis**: Identifies missing references and suggests topics for deeper research.
 - **Obsidian Vault Export**: Generates a complete `.zip` package with YAML frontmatter, backlinks, and `Index.md` for instant opening in Obsidian.
-
----
-
-## Automated Test Suite
-
-Local Brain includes a comprehensive automated test suite consisting of **7 suites** and **39 unit, integration, and E2E tests**:
-
-```bash
-npm test
-```
-
-```
-=======================================================
-   LOCAL BRAIN DESKTOP — COMPREHENSIVE TEST SUITE
-=======================================================
-
-[1/7] Running Backend API E2E Tests...
-  ✔ OpenRouter free models catalog returns list
-  ✔ Offline Engine deterministic response yields valid synthesized text
-  ✔ executeLLM falls back to deterministic provider successfully
-
-[2/7] Running Local Intelligence Engine & Hybrid Search Tests...
-  ✔ generateLocalVector produces normalized vector with exact dimension
-  ✔ generateLocalVector handles empty and whitespace strings gracefully
-  ✔ cosineSimilarity calculates exact 1.0 for identical vectors
-  ✔ cosineSimilarity ranks semantically related text higher than unrelated text
-  ✔ chunkText splits long documents with overlap preservation
-  ✔ hybridSearch finds and ranks relevant documents by query
-  ✔ hybridSearch respects keyword vs semantic weighting adjustment
-
-[3/7] Running Document Versioning & State Integrity Tests...
-  ✔ updateDocumentWithVersion creates baseline v1 and incremented v2 revision
-  ✔ updateDocumentWithVersion preserves author attribution and calculated metrics
-  ✔ restoreDocumentVersion rolls back content to previous version without destroying history
-  ✔ Safe JSON persistence prevents quota crashing
-
-[4/7] Running UI/UX Formats & Workflow Verification Tests...
-  ✔ formatFileSize formats byte quantities appropriately
-  ✔ DEFAULT_SETTINGS configures local privacy-first defaults
-  ✔ INITIAL_DOCUMENTS includes rich multi-format seed dataset
-  ✔ Desktop shortcuts bindings adhere to specifications
-  ✔ Navigation views map to accessible application tabs
-
-[5/7] Running Living Personal Wiki & Knowledge Vault Tests...
-  ✔ Document clustering groups items by category and semantic tags
-  ✔ parseMarkdownSections parses ## and ### headings into structured sections
-  ✔ detectContradictions flags known discrepancies between source texts
-  ✔ detectKnowledgeGaps identifies missing areas and research recommendations
-  ✔ regenerateWikiSection updates only targeted section content
-  ✔ exportWikiToObsidian formats valid Obsidian YAML frontmatter and [[wiki links]]
-  ✔ exportObsidianVaultZip packages complete vault with Index.md and article notes
-  ✔ synthesizeWikiArticle generates a complete Living Wiki article with citations and links
-
-[6/7] Running Offline SLM Engine & Transformers Embedder Tests...
-  ✔ LocalTransformersEmbedder initializes with 384 dimensions
-  ✔ LocalTransformersEmbedder batch embed returns matching row count
-  ✔ createLanceDBSchemaWithEmbedder binds 384-dim vector column
-  ✔ LocalSLMEngine singleton pattern and lifecycle disposal
-  ✔ formatChatML correctly constructs ChatML delimiters
-  ✔ getAllProvidersStatus exposes Local SLM while preserving existing providers
-  ✔ routeLLM falls back gracefully with offline flag set to true
-  ✔ Deterministic offline response handles JSON classification format
-
-[7/7] Running Production Readiness & Crash Prevention Tests...
-  ✔ Local SLM activates VRAM safe mode when GPU free memory is below model threshold
-  ✔ Document summary regeneration with local-slm returns complete structured 3-tier summary
-  ✔ Model selection persists state across UI provider transitions
-  ✔ Library nuke completely purges documents and sets clean vault state
-
-=======================================================
-   TEST EXECUTION SUMMARY: 39 / 39 PASSED CLEANLY
-=======================================================
-```
 
 ---
 
