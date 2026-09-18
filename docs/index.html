@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Brain | Privacy-First AI Document Assistant</title>
+    <meta name="description" content="Local Brain is a privacy-first document intelligence desktop app featuring local vector search, categorization, and wiki generation.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i data-lucide="brain-circuit" class="logo-icon"></i>
+                <span>Local Brain</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#features">Features</a>
+                <a href="https://github.com/yourusername/local-brain" target="_blank" class="github-link">
+                    <i data-lucide="github"></i>
+                    GitHub
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="hero-content">
+                <div class="badge">100% Local & Privacy First</div>
+                <h1 class="hero-title">Your Private Document<br><span class="text-gradient">Intelligence Engine</span></h1>
+                <p class="hero-subtitle">
+                    Seamlessly search, auto-categorize, and generate wikis from your documents with powerful AI running directly on your machine. Zero cloud egress.
+                </p>
+                <div class="hero-actions">
+                    <a href="https://github.com/yourusername/local-brain" class="btn btn-primary">
+                        <i data-lucide="download"></i> Get Started
+                    </a>
+                    <a href="#features" class="btn btn-secondary">
+                        Learn More
+                    </a>
+                </div>
+            </div>
+            
+            <div class="hero-visual">
+                <div class="glass-panel main-panel">
+                    <div class="panel-header">
+                        <div class="dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <span class="panel-title">local-brain-search.exe</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="search-bar">
+                            <i data-lucide="search"></i>
+                            <span>What architectural patterns are used?</span>
+                        </div>
+                        <div class="results">
+                            <div class="result-item">
+                                <div class="result-icon blue"><i data-lucide="file-text"></i></div>
+                                <div class="result-info">
+                                    <h4>Architecture Details.md</h4>
+                                    <p>Uses embedded LanceDB vector storage with SQLite WAL...</p>
+                                </div>
+                            </div>
+                            <div class="result-item">
+                                <div class="result-icon purple"><i data-lucide="book-open"></i></div>
+                                <div class="result-info">
+                                    <h4>System Requirements</h4>
+                                    <p>Zero external data leakage ensures strict enterprise privacy...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <h2 class="section-title">Core <span class="text-gradient">Capabilities</span></h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><i data-lucide="shield-check"></i></div>
+                    <h3>Absolute Privacy</h3>
+                    <p>Runs offline using LM Studio models. Your sensitive documents never leave your local machine.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i data-lucide="zap"></i></div>
+                    <h3>Semantic Vector Search</h3>
+                    <p>Find exactly what you need. Dense vector embeddings mean you search by meaning, not just keywords.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i data-lucide="tags"></i></div>
+                    <h3>Auto-Categorization</h3>
+                    <p>Say goodbye to manual filing. Local Brain automatically tags and categorizes your files on import.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i data-lucide="library"></i></div>
+                    <h3>Knowledge Synthesis</h3>
+                    <p>Instantly generate encyclopedia-grade markdown wikis from your document clusters.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta">
+            <div class="cta-container glass-panel">
+                <h2>Ready to unlock your local data?</h2>
+                <p>Join the movement towards private, fast, and local AI.</p>
+                <a href="https://github.com/yourusername/local-brain" class="btn btn-primary">
+                    <i data-lucide="github"></i> View on GitHub
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="logo">
+                <i data-lucide="brain-circuit" class="logo-icon"></i>
+                <span>Local Brain</span>
+            </div>
+            <p>&copy; 2026 Local Brain. Open source under the MIT License.</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

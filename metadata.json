@@ -1,0 +1,7 @@
+{
+  "name": "Local Brain",
+  "description": "AI-powered document repository with local vector indexing, semantic search, auto-categorization, multi-level summaries, and wiki generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
