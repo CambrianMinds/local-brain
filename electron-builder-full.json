@@ -25,14 +25,9 @@
   "win": {
     "target": [
       {
-        "target": "nsis",
+        "target": "dir",
         "arch": ["x64"]
       }
-    ],
-    "artifactName": "Local-Brain-Full-Setup-${version}.${ext}"
-  },
-  "nsis": {
-    "oneClick": false,
-    "allowToChangeInstallationDirectory": true
+    ]
   }
 }

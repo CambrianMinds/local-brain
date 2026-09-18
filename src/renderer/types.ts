@@ -12,6 +12,7 @@ export interface DocumentSummary {
   brief: string;
   detailed: string;
   keyPoints: string[];
+  provider?: string;
 }
 
 export interface DocumentVersion {
@@ -164,10 +165,12 @@ export interface WikiPage {
 }
 
 export interface SettingsConfig {
-  aiProvider: 'lmstudio' | 'openrouter' | 'gemini' | 'hybrid' | 'local-slm';
+  aiProvider: 'lmstudio' | 'openrouter' | 'gemini' | 'hybrid' | 'local-slm' | 'xai';
   lmStudioUrl: string;
   openRouterApiKey?: string;
   openRouterModel?: string;
+  xaiApiKey?: string;
+  xaiModel?: string;
   embeddingModel?: string;
   chatModel?: string;
   chunkSize: number;

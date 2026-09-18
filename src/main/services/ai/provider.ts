@@ -137,6 +137,7 @@ export async function executeLLM(options: {
   provider?: string;
   model?: string;
   apiKey?: string;
+  xaiApiKey?: string;
   lmStudioUrl?: string;
   prompt: string;
   systemPrompt?: string;

@@ -130,8 +130,26 @@ ipcMain.handle('ai:getLmStudioModels', async (_, url) => {
   };
 });
 
+ipcMain.handle('ai:testXAI', async (_, apiKey: string) => {
+  const targetKey = apiKey || process.env.XAI_API_KEY;
+  if (!targetKey) return { success: false, error: 'xAI API key is required' };
+  try {
+    const res = await fetch('https://api.x.ai/v1/models', {
+      headers: { Authorization: `Bearer ${targetKey}` },
+    });
+    if (res.ok) {
+      const data: any = await res.json();
+      return { success: true, models: data.data || [] };
+    }
+    const err = await res.text();
+    return { success: false, error: `xAI status ${res.status}: ${err}` };
+  } catch (e: any) {
+    return { success: false, error: e?.message || 'Connection to xAI failed' };
+  }
+});
+
 ipcMain.handle('ai:ask', async (_, payload) => {
-  const { question, documentTitle, documentContent, chunks, provider, model, apiKey, lmStudioUrl } = payload;
+  const { question, documentTitle, documentContent, chunks, provider, model, apiKey, xaiApiKey, lmStudioUrl } = payload;
   if (!question) return { error: 'Question is required' };
 
   const prompt = `You are Local Brain, a high-precision desktop document intelligence assistant.
@@ -148,7 +166,8 @@ User Question: ${question}
 Provide a concise, direct, authoritative answer with 2-3 bullet citations if helpful.`;
 
   try {
-    const result = await executeLLM({ provider, model, apiKey, lmStudioUrl, prompt, systemPrompt: 'You are Local Brain, a high-precision desktop document intelligence assistant.' });
+    const effectiveApiKey = provider === 'xai' ? (xaiApiKey || apiKey) : apiKey;
+    const result = await executeLLM({ provider, model, apiKey: effectiveApiKey, xaiApiKey, lmStudioUrl, prompt, systemPrompt: 'You are Local Brain, a high-precision desktop document intelligence assistant.' });
     return { answer: result.text || 'No response generated.', provider: result.providerName, confidence: 0.96 };
   } catch {}
 
@@ -168,7 +187,7 @@ Provide a concise, direct, authoritative answer with 2-3 bullet citations if hel
 });
 
 ipcMain.handle('ai:summarize', async (_, payload) => {
-  const { title, content, provider, model, apiKey, lmStudioUrl } = payload;
+  const { title, content, provider, model, apiKey, xaiApiKey, lmStudioUrl } = payload;
   if (!content) return { error: 'Content is required' };
 
   // For high-speed synthesis with Local SLM, use the first ~800 characters
@@ -182,10 +201,12 @@ Respond in this exact JSON format:
 JSON:`;
 
   try {
+    const effectiveApiKey = provider === 'xai' ? (xaiApiKey || apiKey) : apiKey;
     const result = await executeLLM({
       provider,
       model,
-      apiKey,
+      apiKey: effectiveApiKey,
+      xaiApiKey,
       lmStudioUrl,
       prompt,
       systemPrompt: 'You are an analytical document synthesis assistant. Output valid JSON only.',
@@ -239,7 +260,7 @@ JSON:`;
 });
 
 ipcMain.handle('ai:categorize', async (_, payload) => {
-  const { title, content, provider, model, apiKey, lmStudioUrl } = payload;
+  const { title, content, provider, model, apiKey, xaiApiKey, lmStudioUrl } = payload;
   const standardCategories = ['Research', 'Technical', 'Work', 'Finance', 'Legal', 'Personal', 'Creative'];
 
   if (content) {
@@ -253,7 +274,8 @@ Return raw JSON only:
 { "category": "...", "tags": ["tag1", "tag2"] }`;
 
     try {
-      const result = await executeLLM({ provider, model, apiKey, lmStudioUrl, prompt, systemPrompt: 'You classify documents accurately. Output raw JSON only.', jsonMode: true });
+      const effectiveApiKey = provider === 'xai' ? (xaiApiKey || apiKey) : apiKey;
+      const result = await executeLLM({ provider, model, apiKey: effectiveApiKey, xaiApiKey, lmStudioUrl, prompt, systemPrompt: 'You classify documents accurately. Output raw JSON only.', jsonMode: true });
       const cleaned = result.text.replace(/```json\n?|\n?```/g, '').trim();
       const parsed = JSON.parse(cleaned);
       if (parsed.category && Array.isArray(parsed.tags)) {
@@ -284,7 +306,7 @@ Return raw JSON only:
 });
 
 ipcMain.handle('ai:wiki', async (_, payload) => {
-  const { topic, sourceDocTitles, combinedExcerpts, provider, model, apiKey, lmStudioUrl } = payload;
+  const { topic, sourceDocTitles, combinedExcerpts, provider, model, apiKey, xaiApiKey, lmStudioUrl } = payload;
   const prompt = `You are generating an encyclopedia-grade technical or organizational Knowledge Wiki page for Local Brain.
 Topic: ${topic}
 Source Documents: ${sourceDocTitles?.join(', ') || 'Repository Documents'}
@@ -294,7 +316,8 @@ ${(combinedExcerpts || '').slice(0, 6000)}
 Write a comprehensive, highly readable, structured Markdown article.`;
 
   try {
-    const result = await executeLLM({ provider, model, apiKey, lmStudioUrl, prompt, systemPrompt: 'You are an encyclopedia knowledge synthesizer.' });
+    const effectiveApiKey = provider === 'xai' ? (xaiApiKey || apiKey) : apiKey;
+    const result = await executeLLM({ provider, model, apiKey: effectiveApiKey, xaiApiKey, lmStudioUrl, prompt, systemPrompt: 'You are an encyclopedia knowledge synthesizer.' });
     return { content: result.text, title: topic, provider: result.providerName };
   } catch {}
   
@@ -306,7 +329,7 @@ Write a comprehensive, highly readable, structured Markdown article.`;
 });
 
 ipcMain.handle('ai:wiki-section', async (_, payload) => {
-  const { pageTitle, sectionHeading, sectionContext, sourceDocTitles, provider, model, apiKey, lmStudioUrl } = payload;
+  const { pageTitle, sectionHeading, sectionContext, sourceDocTitles, provider, model, apiKey, xaiApiKey, lmStudioUrl } = payload;
   const prompt = `You are rewriting and updating a specific section of an encyclopedic Knowledge Wiki page.
 Wiki Article Title: ${pageTitle}
 Section to Update: ${sectionHeading}
@@ -314,20 +337,22 @@ Context: ${(sectionContext || '').slice(0, 4000)}
 Write ONLY the updated content for this section under the heading "${sectionHeading}".`;
 
   try {
-    const result = await executeLLM({ provider, model, apiKey, lmStudioUrl, prompt, systemPrompt: 'You are an encyclopedia knowledge synthesizer.' });
+    const effectiveApiKey = provider === 'xai' ? (xaiApiKey || apiKey) : apiKey;
+    const result = await executeLLM({ provider, model, apiKey: effectiveApiKey, xaiApiKey, lmStudioUrl, prompt, systemPrompt: 'You are an encyclopedia knowledge synthesizer.' });
     return { content: result.text, heading: sectionHeading, provider: result.providerName };
   } catch {}
   return { content: `${sectionHeading}\nThe updated analysis incorporates verified data points.`, heading: sectionHeading, provider: 'Local Offline Synthesizer' };
 });
 
 ipcMain.handle('ai:wiki-briefing', async (_, payload) => {
-  const { topic, mode, sourceDocTitles, combinedExcerpts, provider, model, apiKey, lmStudioUrl } = payload;
+  const { topic, mode, sourceDocTitles, combinedExcerpts, provider, model, apiKey, xaiApiKey, lmStudioUrl } = payload;
   const isStudyGuide = mode === 'study-guide';
   const prompt = `Create an ${isStudyGuide ? 'Study Guide' : 'Executive Briefing'} for the topic: "${topic}".
 Context: ${(combinedExcerpts || '').slice(0, 5000)}`;
 
   try {
-    const result = await executeLLM({ provider, model, apiKey, lmStudioUrl, prompt, systemPrompt: 'You are an elite research analyst.' });
+    const effectiveApiKey = provider === 'xai' ? (xaiApiKey || apiKey) : apiKey;
+    const result = await executeLLM({ provider, model, apiKey: effectiveApiKey, xaiApiKey, lmStudioUrl, prompt, systemPrompt: 'You are an elite research analyst.' });
     let finalContent = result.text.trim();
     if (!finalContent.toLowerCase().includes('briefing') && !finalContent.toLowerCase().includes('study guide')) {
       finalContent = `# ${isStudyGuide ? 'Study Guide' : 'Executive Briefing'}: ${topic}\n\n` + finalContent;

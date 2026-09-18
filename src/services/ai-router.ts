@@ -6,9 +6,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export interface RouterOptions {
-  provider?: 'local-slm' | 'gemini' | 'openrouter' | 'lmstudio' | 'offline' | string;
+  provider?: 'local-slm' | 'gemini' | 'openrouter' | 'lmstudio' | 'xai' | 'offline' | string;
   model?: string;
   apiKey?: string;
+  xaiApiKey?: string;
   lmStudioUrl?: string;
   prompt: string;
   systemPrompt?: string;
@@ -238,7 +239,52 @@ export async function routeLLM(options: RouterOptions): Promise<RouterResult> {
     }
   }
 
-  // 3. LM Studio Provider (Local HTTP daemon kept available)
+  // 3. xAI (Grok) Provider (Cloud)
+  if (provider === 'xai') {
+    const activeKey = options.xaiApiKey || apiKey || process.env.XAI_API_KEY;
+    const activeModel = model || 'grok-2-latest';
+    if (activeKey) {
+      try {
+        const response = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${activeKey}`,
+          },
+          body: JSON.stringify({
+            model: activeModel,
+            messages: [
+              ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+              { role: 'user', content: prompt },
+            ],
+            ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+            temperature: temperature ?? 0.7,
+            max_tokens: maxTokens ?? 1024,
+          }),
+        });
+
+        if (response.ok) {
+          const data: any = await response.json();
+          const content = data.choices?.[0]?.message?.content;
+          if (content) {
+            return {
+              text: content,
+              providerName: `xAI (${activeModel})`,
+              modelUsed: activeModel,
+              isOffline: false,
+            };
+          }
+        } else {
+          const errText = await response.text();
+          console.warn('[AI-Router] xAI API returned error:', response.status, errText);
+        }
+      } catch (err: any) {
+        console.warn('[AI-Router] xAI request failed:', err?.message || err);
+      }
+    }
+  }
+
+  // 4. LM Studio Provider (Local HTTP daemon kept available)
   if (provider === 'lmstudio') {
     const activeModel = model || 'meta-llama-3.2-3b-instruct';
     const cleanUrl = lmStudioUrl.replace(/\/+$/, '');
@@ -341,6 +387,11 @@ export function getAllProvidersStatus() {
       status: 'ready',
       defaultChatModel: 'meta-llama/llama-3.2-3b-instruct:free',
       defaultEmbeddingModel: 'liquid/lfm2.5-embedding-350m:free',
+    },
+    xai: {
+      available: Boolean(process.env.XAI_API_KEY),
+      defaultModel: 'grok-2-latest',
+      models: ['grok-2-latest', 'grok-2', 'grok-2-vision-1212', 'grok-beta'],
     },
   };
 }

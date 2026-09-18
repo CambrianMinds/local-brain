@@ -10,6 +10,7 @@ export interface LocalBrainAPI {
   wikiAI: (payload: any) => Promise<any>;
   wikiSectionAI: (payload: any) => Promise<any>;
   wikiBriefingAI: (payload: any) => Promise<any>;
+  testXAI: (apiKey?: string) => Promise<{ success: boolean; models?: any[]; error?: string }>;
   parseDocument: (file: { name: string; buffer: ArrayBuffer }) => Promise<{ text: string; error?: string }>;
 }
 

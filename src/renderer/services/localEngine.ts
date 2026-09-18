@@ -129,9 +129,10 @@ export function hybridSearch(
 
 // Client-Server Bridge for AI Operations
 export interface AIOptions {
-  provider?: 'lmstudio' | 'openrouter' | 'gemini' | 'hybrid' | 'local-slm';
+  provider?: 'lmstudio' | 'openrouter' | 'gemini' | 'hybrid' | 'local-slm' | 'xai';
   model?: string;
   apiKey?: string;
+  xaiApiKey?: string;
   lmStudioUrl?: string;
 }
 
@@ -300,6 +301,7 @@ export async function askDocumentAI(
       provider: options?.provider,
       model: options?.model,
       apiKey: options?.apiKey,
+      xaiApiKey: options?.xaiApiKey,
       lmStudioUrl: options?.lmStudioUrl,
     });
   } catch (err) {
@@ -314,6 +316,14 @@ export async function askDocumentAI(
   };
 }
 
+export async function askDocumentQuestionAI(
+  doc: DocumentItem,
+  question: string,
+  options?: AIOptions
+): Promise<{ answer: string; provider?: string; confidence?: number }> {
+  return askDocumentAI(question, doc, options);
+}
+
 export async function summarizeDocumentAI(
   title: string,
   content: string,
@@ -326,6 +336,7 @@ export async function summarizeDocumentAI(
       provider: options?.provider,
       model: options?.model,
       apiKey: options?.apiKey,
+      xaiApiKey: options?.xaiApiKey,
       lmStudioUrl: options?.lmStudioUrl,
     });
   } catch (err) {
@@ -358,6 +369,7 @@ export async function categorizeDocumentAI(
       provider: options?.provider,
       model: options?.model,
       apiKey: options?.apiKey,
+      xaiApiKey: options?.xaiApiKey,
       lmStudioUrl: options?.lmStudioUrl,
     });
   } catch (err) {

@@ -65,6 +65,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [slmStatus, setSlmStatus] = useState<any>(null);
   const [isLoadingSLM, setIsLoadingSLM] = useState(false);
 
+  // xAI (Grok) state
+  const [showXaiApiKey, setShowXaiApiKey] = useState(false);
+  const [testingXai, setTestingXai] = useState(false);
+  const [xaiTestStatus, setXaiTestStatus] = useState<string | null>(null);
+
   // Initial load of models on mount
   useEffect(() => {
     handleFetchOpenRouterModels(current.openRouterApiKey);
@@ -125,6 +130,27 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     }
   };
 
+  const handleTestXAI = async () => {
+    setTestingXai(true);
+    setXaiTestStatus(null);
+    try {
+      if (window.api && window.api.testXAI) {
+        const res = await window.api.testXAI(current.xaiApiKey);
+        if (res.success) {
+          setXaiTestStatus('Connected to xAI API successfully! Models verified.');
+        } else {
+          setXaiTestStatus(`Connection failed: ${res.error || 'Unknown error'}`);
+        }
+      } else {
+        setXaiTestStatus('xAI test API not available in current window bridge.');
+      }
+    } catch (e: any) {
+      setXaiTestStatus(`Error: ${e.message || e}`);
+    } finally {
+      setTestingXai(false);
+    }
+  };
+
   const testConnection = async () => {
     setTestingConnection(true);
     setConnectionStatus(null);
@@ -141,8 +167,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             ? current.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free'
             : current.aiProvider === 'lmstudio'
             ? current.chatModel || 'meta-llama-3.2-3b-instruct'
+            : current.aiProvider === 'xai'
+            ? current.xaiModel || 'grok-2-latest'
             : 'gemini-3.8-flash',
-        apiKey: current.openRouterApiKey,
+        apiKey: current.aiProvider === 'xai' ? current.xaiApiKey : current.openRouterApiKey,
+        xaiApiKey: current.xaiApiKey,
         lmStudioUrl: current.lmStudioUrl,
       });
       if (data.answer) {
@@ -166,7 +195,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setTimeout(() => setSavedBanner(false), 2600);
   };
 
-  const handleSelectProvider = (provider: 'local-slm' | 'lmstudio' | 'openrouter' | 'gemini') => {
+  const handleSelectProvider = (provider: 'local-slm' | 'lmstudio' | 'openrouter' | 'gemini' | 'xai') => {
     const updated = { ...current, aiProvider: provider };
     setCurrent(updated);
     onSaveSettings(updated);
@@ -241,8 +270,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </span>
             </div>
 
-            {/* 4 Provider Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
+            {/* 5 Provider Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px', marginBottom: '20px' }}>
               {/* Card 0: Local SLM */}
               <div
                 onClick={() => handleSelectProvider('local-slm')}
@@ -354,7 +383,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   </span>
                 </div>
                 <p style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                  Multi-provider gateway. Supports <strong>100% free models</strong> (Llama 3.2, DeepSeek, Gemini Exp).
+                  Multi-provider gateway. Supports <strong>100% free models</strong> (Llama 3.2, DeepSeek).
                 </p>
                 <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span
@@ -367,12 +396,55 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       fontWeight: 600,
                     }}
                   >
-                    Free Models Available
+                    Free Models
                   </span>
                 </div>
               </div>
 
-              {/* Card 3: Google Gemini */}
+              {/* Card 3: xAI (Grok) */}
+              <div
+                onClick={() => handleSelectProvider('xai')}
+                style={{
+                  padding: '16px',
+                  borderRadius: 'var(--radius-md)',
+                  border:
+                    current.aiProvider === 'xai'
+                      ? '2px solid var(--accent)'
+                      : '1px solid var(--border-medium)',
+                  background:
+                    current.aiProvider === 'xai'
+                      ? 'var(--accent-dim)'
+                      : 'rgba(255, 255, 255, 0.02)',
+                  cursor: 'pointer',
+                  transition: 'all var(--duration-fast) var(--ease-out)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <Sparkles size={16} style={{ color: 'var(--accent)' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    xAI (Grok)
+                  </span>
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  Grok 2 reasoning & speed via official xAI API key.
+                </p>
+                <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: current.xaiApiKey ? 'var(--accent)' : 'var(--text-tertiary)',
+                    }}
+                  />
+                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
+                    {current.xaiApiKey ? 'Key Configured' : 'Needs API Key'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 4: Google Gemini */}
               <div
                 onClick={() => handleSelectProvider('gemini')}
                 style={{
@@ -397,7 +469,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   </span>
                 </div>
                 <p style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                  Direct server-side cloud inference via Gemini 3.8 / 2.5 Flash for high throughput.
+                  Direct server-side cloud inference via Gemini 3.8 Flash for fast processing.
                 </p>
                 <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
@@ -761,9 +833,129 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     value={current.embeddingModel || 'gemini-3.8-flash'}
                     onChange={(e) => setCurrent({ ...current, embeddingModel: e.target.value })}
                   >
-                    <option value="gemini-3.8-flash">Gemini 3.8 Flash (Recommended - Ultra Fast & Precise)</option>
+                    <option value="gemini-3.8-flash">Gemini 3.8 Flash (Recommended - Ultra Fast &amp; Precise)</option>
                     <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                   </select>
+                </div>
+              </div>
+            )}
+
+            {/* 4. xAI (GROK) CONFIGURATION */}
+            {current.aiProvider === 'xai' && (
+              <div
+                style={{
+                  padding: '18px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Sparkles size={15} style={{ color: 'var(--accent)' }} />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      xAI Grok Configuration
+                    </span>
+                  </div>
+                  <span
+                    className="tag-pill accent"
+                    style={{ fontSize: '10px', fontWeight: 600 }}
+                  >
+                    api.x.ai/v1
+                  </span>
+                </div>
+
+                {/* API Key Input */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    xAI API Key
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                      <input
+                        type={showXaiApiKey ? 'text' : 'password'}
+                        className="input-base"
+                        placeholder="xai-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        value={current.xaiApiKey || ''}
+                        onChange={(e) => setCurrent({ ...current, xaiApiKey: e.target.value })}
+                        style={{ paddingRight: '36px', width: '100%' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowXaiApiKey(!showXaiApiKey)}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-tertiary)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {showXaiApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={handleTestXAI}
+                      disabled={testingXai || !current.xaiApiKey}
+                      className="btn btn-secondary btn-sm"
+                      style={{ whiteSpace: 'nowrap' }}
+                      title="Test xAI API Key"
+                    >
+                      <RefreshCw size={13} className={testingXai ? 'animate-spin' : ''} />
+                      <span>{testingXai ? 'Testing...' : 'Verify Key'}</span>
+                    </button>
+                  </div>
+                  {xaiTestStatus && (
+                    <p style={{
+                      fontSize: '11px',
+                      color: xaiTestStatus.includes('successfully') ? 'var(--accent)' : 'var(--danger)',
+                      marginTop: '6px',
+                    }}>
+                      {xaiTestStatus}
+                    </p>
+                  )}
+                  <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                    Get your key from the xAI Console (console.x.ai). Keys are stored locally on your device.
+                  </p>
+                </div>
+
+                {/* Model Selector */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    Grok Model
+                  </label>
+                  <select
+                    className="input-base"
+                    value={current.xaiModel || 'grok-2-latest'}
+                    onChange={(e) => setCurrent({ ...current, xaiModel: e.target.value })}
+                  >
+                    <option value="grok-2-latest">grok-2-latest (State of the art reasoning &amp; chat)</option>
+                    <option value="grok-2">grok-2</option>
+                    <option value="grok-2-vision-1212">grok-2-vision-1212 (Multimodal)</option>
+                    <option value="grok-beta">grok-beta</option>
+                  </select>
+
+                  {/* Chips */}
+                  <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {['grok-2-latest', 'grok-2', 'grok-2-vision-1212', 'grok-beta'].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setCurrent({ ...current, xaiModel: m })}
+                        className={`btn btn-sm ${current.xaiModel === m ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ fontSize: '10px', padding: '2px 8px' }}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

@@ -33,6 +33,7 @@ import {
 import { DocumentItem, DocumentSummary, DocumentVersion, SettingsConfig } from '../../types';
 import {
   askDocumentAI,
+  askDocumentQuestionAI,
   summarizeDocumentAI,
   chunkText,
   updateDocumentWithVersion,
@@ -109,6 +110,8 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
       ? settings?.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free'
       : settings?.aiProvider === 'lmstudio'
       ? settings?.chatModel || 'meta-llama-3.2-3b-instruct'
+      : settings?.aiProvider === 'xai'
+      ? settings?.xaiModel || 'grok-2-latest'
       : 'gemini-3.8-flash'
   );
 
@@ -122,10 +125,12 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
       setReaderModel(settings?.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free');
     } else if (activeProv === 'lmstudio') {
       setReaderModel(settings?.chatModel || 'meta-llama-3.2-3b-instruct');
+    } else if (activeProv === 'xai') {
+      setReaderModel(settings?.xaiModel || 'grok-2-latest');
     } else {
       setReaderModel('gemini-3.8-flash');
     }
-  }, [settings?.aiProvider, aiProvider, settings?.openRouterModel, settings?.chatModel]);
+  }, [settings?.aiProvider, aiProvider, settings?.openRouterModel, settings?.chatModel, settings?.xaiModel]);
 
   const handleReaderProviderChange = (newProv: string) => {
     setReaderProvider(newProv);
@@ -136,6 +141,8 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
       newModel = settings?.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free';
     } else if (newProv === 'lmstudio') {
       newModel = settings?.chatModel || 'meta-llama-3.2-3b-instruct';
+    } else if (newProv === 'xai') {
+      newModel = settings?.xaiModel || 'grok-2-latest';
     }
     setReaderModel(newModel);
     if (onUpdateSettings && settings) {
@@ -188,7 +195,8 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
       const response = await askDocumentQuestionAI(document, userQ, {
         provider: readerProvider as any,
         model: readerModel,
-        apiKey: settings?.openRouterApiKey,
+        apiKey: readerProvider === 'xai' ? settings?.xaiApiKey : settings?.openRouterApiKey,
+        xaiApiKey: settings?.xaiApiKey,
         lmStudioUrl: settings?.lmStudioUrl,
       });
 
@@ -214,13 +222,18 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
     }
   };
 
+  const handleSendChat = () => {
+    handleAskQuestion({ preventDefault: () => {} } as any);
+  };
+
   const handleRegenerateSummary = async () => {
     setIsRegeneratingSummary(true);
     try {
       const newSummary = await summarizeDocumentAI(document.title, document.content, {
         provider: readerProvider as any,
         model: readerModel,
-        apiKey: settings?.openRouterApiKey,
+        apiKey: readerProvider === 'xai' ? settings?.xaiApiKey : settings?.openRouterApiKey,
+        xaiApiKey: settings?.xaiApiKey,
         lmStudioUrl: settings?.lmStudioUrl,
       });
       
@@ -626,6 +639,7 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
                       <option value="local-slm">Local SLM (Gemma-4 E2B)</option>
                       <option value="openrouter">OpenRouter (Free Models)</option>
                       <option value="lmstudio">LM Studio (Local)</option>
+                      <option value="xai">xAI (Grok)</option>
                       <option value="gemini">Gemini (Server)</option>
                     </select>
                     {document.summary?.provider && (
@@ -768,6 +782,7 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
                       <option value="local-slm">Local SLM (Gemma-4 E2B GGUF)</option>
                       <option value="openrouter">OpenRouter (Free Models)</option>
                       <option value="lmstudio">LM Studio (Local)</option>
+                      <option value="xai">xAI (Grok)</option>
                       <option value="gemini">Gemini (Server)</option>
                     </select>
                   </div>
