@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+import { routeLLM } from '../../../services/ai-router';
 
 dotenv.config();
 
@@ -141,88 +142,9 @@ export async function executeLLM(options: {
   systemPrompt?: string;
   jsonMode?: boolean;
 }): Promise<{ text: string; providerName: string }> {
-  const { provider = 'gemini', model, apiKey, lmStudioUrl = 'http://localhost:1234/v1', prompt, systemPrompt, jsonMode } = options;
-
-  if (provider === 'openrouter') {
-    const activeModel = model || 'meta-llama/llama-3.2-3b-instruct:free';
-    if (apiKey) {
-      try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': 'http://localhost:3000',
-            'X-Title': 'Local Brain Desktop',
-          },
-          body: JSON.stringify({
-            model: activeModel,
-            messages: [
-              ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-              { role: 'user', content: prompt },
-            ],
-            ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
-          }),
-        });
-
-        if (response.ok) {
-          const data: any = await response.json();
-          const content = data.choices?.[0]?.message?.content;
-          if (content) {
-            return {
-              text: content,
-              providerName: `OpenRouter (${activeModel})`,
-            };
-          }
-        }
-      } catch {
-      }
-    }
-  }
-
-  if (provider === 'lmstudio') {
-    const activeModel = model || 'meta-llama-3.2-3b-instruct';
-    const cleanUrl = lmStudioUrl.replace(/\/+$/, '');
-    const endpoint = cleanUrl.endsWith('/v1') ? `${cleanUrl}/chat/completions` : `${cleanUrl}/v1/chat/completions`;
-
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: activeModel,
-          messages: [
-            ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-            { role: 'user', content: prompt },
-          ],
-        }),
-      });
-
-      if (response.ok) {
-        const data: any = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        if (content) {
-          return {
-            text: content,
-            providerName: `LM Studio Local (${activeModel})`,
-          };
-        }
-      }
-    } catch {
-    }
-  }
-
-  const ai = getAIClient();
-  if (ai) {
-    const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
-    const geminiRes = await callGeminiWithFallback(ai, fullPrompt, model, jsonMode);
-    if (geminiRes) {
-      return {
-        text: geminiRes.text,
-        providerName: `Gemini (${geminiRes.modelUsed})`,
-      };
-    }
-  }
-
-  return generateDeterministicOfflineResponse(options);
+  const result = await routeLLM(options);
+  return {
+    text: result.text,
+    providerName: result.providerName,
+  };
 }

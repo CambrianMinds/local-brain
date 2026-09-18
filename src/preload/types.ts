@@ -1,6 +1,7 @@
 export interface LocalBrainAPI {
   getHealth: () => Promise<any>;
   getAIStatus: () => Promise<any>;
+  getSLMStatus?: () => Promise<any>;
   getOpenRouterModels: (apiKey?: string) => Promise<any>;
   getLmStudioModels: (url?: string) => Promise<any>;
   askAI: (payload: any) => Promise<any>;

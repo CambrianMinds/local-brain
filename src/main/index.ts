@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 // __dirname is available in CJS output
 import { executeLLM, CURATED_OPENROUTER_FREE_MODELS } from './services/ai/provider';
+import { getAllProvidersStatus } from '../services/ai-router';
+import { localSLMEngine } from '../lib/llm';
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -50,12 +52,11 @@ ipcMain.handle('ai:health', () => {
 });
 
 ipcMain.handle('ai:status', () => {
-  const hasGemini = Boolean(process.env.GEMINI_API_KEY);
-  return {
-    gemini: { available: hasGemini, model: 'gemini-3.8-flash' },
-    lmStudio: { endpoint: 'http://localhost:1234/v1', status: 'ready', defaultEmbeddingModel: 'nomic-embed-text', defaultChatModel: 'meta-llama-3.2-3b-instruct' },
-    openRouter: { status: 'ready', defaultChatModel: 'meta-llama/llama-3.2-3b-instruct:free', defaultEmbeddingModel: 'liquid/lfm2.5-embedding-350m:free' },
-  };
+  return getAllProvidersStatus();
+});
+
+ipcMain.handle('ai:slmStatus', () => {
+  return localSLMEngine.getStatus();
 });
 
 ipcMain.handle('ai:getOpenRouterModels', async (_, apiKey) => {

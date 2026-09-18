@@ -2,8 +2,21 @@ node_modules/
 build/
 dist/
 coverage/
+*.exe
 .DS_Store
 *.log
 .env*
 !.env.example
 *.aux
+
+# Local AI Models and Datasets
+models/llm/*.gguf
+models/embeddings/*
+!models/embeddings/.gitkeep
+!models/llm/.gitkeep
+data/*.bak
+data/*.jsonl
+!data/.gitkeep
+__pycache__/
+*.pyc
+

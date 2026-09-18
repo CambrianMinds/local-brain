@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('api', {
   getHealth: () => ipcRenderer.invoke('ai:health'),
   getAIStatus: () => ipcRenderer.invoke('ai:status'),
+  getSLMStatus: () => ipcRenderer.invoke('ai:slmStatus'),
   getOpenRouterModels: (apiKey?: string) => ipcRenderer.invoke('ai:getOpenRouterModels', apiKey),
   getLmStudioModels: (url?: string) => ipcRenderer.invoke('ai:getLmStudioModels', url),
   askAI: (payload: any) => ipcRenderer.invoke('ai:ask', payload),

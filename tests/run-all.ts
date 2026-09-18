@@ -22,6 +22,7 @@ import { runLocalEngineTests } from './local-engine.test.ts';
 import { runVersioningTests } from './versioning-and-state.test.ts';
 import { runUiUxTests } from './ui-ux-flow.test.ts';
 import { runLivingWikiTests } from './wiki-living-engine.test.ts';
+import { runOfflineSLMTests } from './offline-slm.test.ts';
 
 async function main() {
   console.log('\n\x1b[1m\x1b[36m=======================================================');
@@ -44,8 +45,11 @@ async function main() {
     console.log('\n\x1b[1m\x1b[34m[4/5] Running UI/UX Formats & Workflow Verification Tests...\x1b[0m');
     await runUiUxTests(runner);
 
-    console.log('\n\x1b[1m\x1b[34m[5/5] Running Living Personal Wiki & Knowledge Vault Tests...\x1b[0m');
+    console.log('\n\x1b[1m\x1b[34m[5/6] Running Living Personal Wiki & Knowledge Vault Tests...\x1b[0m');
     await runLivingWikiTests(runner);
+
+    console.log('\n\x1b[1m\x1b[34m[6/6] Running Offline SLM Engine & Transformers Embedder Tests...\x1b[0m');
+    await runOfflineSLMTests(runner);
   } catch (fatalErr: any) {
     console.error('\n\x1b[31mFatal test suite error:\x1b[0m', fatalErr);
   }

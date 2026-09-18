@@ -9,8 +9,6 @@ import {
   detectKnowledgeGaps,
   exportWikiToObsidian,
   exportObsidianVaultZip,
-  extractWikiLinks,
-  resolveWikiLinks,
 } from '../src/renderer/services/wikiEngine.ts';
 import { INITIAL_DOCUMENTS, INITIAL_WIKIS } from '../src/renderer/data/seedData.ts';
 import JSZip from 'jszip';
