@@ -57,7 +57,8 @@ export class LocalSLMEngine {
       return null;
     }
     const files = fs.readdirSync(MODELS_LLM_DIR);
-    const ggufFile = files.find((f) => f.toLowerCase().endsWith('.gguf'));
+    // Filter out multimodal projectors (*-mmproj.gguf) which cannot be loaded as standalone base models
+    const ggufFile = files.find((f) => f.toLowerCase().endsWith('.gguf') && !f.toLowerCase().includes('mmproj'));
     return ggufFile ? path.join(MODELS_LLM_DIR, ggufFile) : null;
   }
 
