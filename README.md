@@ -13,7 +13,7 @@
 
 Local Brain is a powerful, privacy-first document management system built with React, Vite, and Express. It provides semantic vector search, auto-categorization, and AI-driven wiki generation, all capable of running 100% locally on your machine.
 
-**Website**: [https://yourusername.github.io/local-brain/](https://yourusername.github.io/local-brain/)
+**Website**: [https://cambrianminds.github.io/local-brain/](https://cambrianminds.github.io/local-brain/)
 
 ## ✨ Features
 
@@ -31,22 +31,26 @@ Local Brain is a powerful, privacy-first document management system built with R
 
 ## 🚀 Installation
 
-**Prerequisites:** 
+**Prerequisites:**
+
 - [Node.js](https://nodejs.org/) (v20+ recommended)
 - [LM Studio](https://lmstudio.ai/) (Optional, for offline execution)
 
 1. **Clone the repository**
+
    ```bash
-   git clone https://github.com/yourusername/local-brain.git
+   git clone https://github.com/CambrianMinds/local-brain.git
    cd local-brain
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Start the development server**
+
    ```bash
    npm run dev
    ```
@@ -60,11 +64,13 @@ cp .env.example .env.local
 ```
 
 Edit `.env.local`:
+
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ### Using LM Studio (100% Offline Mode)
+
 1. Download and install [LM Studio](https://lmstudio.ai/).
 2. Load a conversational model (e.g., `Llama-3.2-3B-Instruct`).
 3. Start the Local Server on port `1234`.
@@ -75,6 +81,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 This repository includes a pre-built static landing page in the `/docs` directory, ready to be hosted on GitHub Pages.
 
 To enable it:
+
 1. Go to your repository **Settings** -> **Pages**.
 2. Under **Build and deployment**, select **Deploy from a branch**.
 3. Select the `main` branch and the `/docs` folder.
