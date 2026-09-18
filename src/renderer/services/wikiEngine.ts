@@ -263,23 +263,16 @@ export async function synthesizeWikiArticle(params: {
   let rawMarkdown = '';
 
   try {
-    const res = await fetch(getApiUrl('/api/ai/wiki'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topic,
-        sourceDocTitles,
-        combinedExcerpts,
-        provider: options?.provider,
-        model: options?.model,
-        apiKey: options?.apiKey,
-        lmStudioUrl: options?.lmStudioUrl,
-      }),
+    const data = await window.api.wikiAI({
+      topic,
+      sourceDocTitles,
+      combinedExcerpts,
+      provider: options?.provider,
+      model: options?.model,
+      apiKey: options?.apiKey,
+      lmStudioUrl: options?.lmStudioUrl,
     });
-    if (res.ok) {
-      const data = await res.json();
-      rawMarkdown = data.content;
-    }
+    rawMarkdown = data.content;
   } catch (err) {
     console.warn('Backend wiki API call failed, generating via structured offline synthesis:', err);
   }
@@ -406,24 +399,17 @@ export async function regenerateWikiSection(params: {
   let newSectionContent = '';
 
   try {
-    const res = await fetch('/api/ai/wiki-section', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pageTitle: page.title,
-        sectionHeading,
-        sectionContext: sourceDocs.map((d) => `${d.title}:\n${d.summary?.brief || ''}`).join('\n\n'),
-        sourceDocTitles,
-        provider: options?.provider,
-        model: options?.model,
-        apiKey: options?.apiKey,
-        lmStudioUrl: options?.lmStudioUrl,
-      }),
+    const data = await window.api.wikiSectionAI({
+      pageTitle: page.title,
+      sectionHeading,
+      sectionContext: sourceDocs.map((d) => `${d.title}:\n${d.summary?.brief || ''}`).join('\n\n'),
+      sourceDocTitles,
+      provider: options?.provider,
+      model: options?.model,
+      apiKey: options?.apiKey,
+      lmStudioUrl: options?.lmStudioUrl,
     });
-    if (res.ok) {
-      const data = await res.json();
-      newSectionContent = data.content;
-    }
+    newSectionContent = data.content;
   } catch (err) {
     console.warn('Section rewrite failed, using offline generator');
   }
@@ -460,24 +446,17 @@ export async function generateBriefingAI(params: {
   const combinedExcerpts = sourceDocs.map((d) => `=== ${d.title} ===\n${d.summary?.detailed || d.content.slice(0, 1000)}`).join('\n\n');
 
   try {
-    const res = await fetch('/api/ai/wiki-briefing', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topic,
-        mode,
-        sourceDocTitles,
-        combinedExcerpts,
-        provider: options?.provider,
-        model: options?.model,
-        apiKey: options?.apiKey,
-        lmStudioUrl: options?.lmStudioUrl,
-      }),
+    const data = await window.api.wikiBriefingAI({
+      topic,
+      mode,
+      sourceDocTitles,
+      combinedExcerpts,
+      provider: options?.provider,
+      model: options?.model,
+      apiKey: options?.apiKey,
+      lmStudioUrl: options?.lmStudioUrl,
     });
-    if (res.ok) {
-      const data = await res.json();
-      return data.content;
-    }
+    return data.content;
   } catch (err) {
     console.warn('Briefing API failed, using fallback');
   }

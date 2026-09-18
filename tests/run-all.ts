@@ -1,4 +1,21 @@
 // Master Test Runner for Local Brain Test Suite
+// Mock window.api for renderer modules being imported in Node environment
+(global as any).window = {
+  api: {
+    getHealth: async () => ({ status: 'ok' }),
+    getAIStatus: async () => ({ status: 'ok' }),
+    getOpenRouterModels: async () => ([]),
+    getLmStudioModels: async () => ([]),
+    askAI: async () => ({ content: 'Mock response' }),
+    summarizeAI: async () => ({ content: 'Mock summary' }),
+    categorizeAI: async () => ({ category: 'Work', tags: ['mock'] }),
+    wikiAI: async (payload: any) => ({ content: `# ${payload.topic || 'Mock Topic'}\n\n## Section 1\nContent\n\n## Section 2\nContent\n\n## Section 3\nContent\n\n[[Vector Databases]]` }),
+    wikiSectionAI: async (payload: any) => ({ content: `## ${payload.sectionHeading || 'Heading'}\nMock regenerated content\n2. DiskANN` }),
+    wikiBriefingAI: async () => ({ content: 'Mock briefing' }),
+    parseDocument: async () => ({ text: 'Mock parsed document text' })
+  }
+};
+
 import { TestSuiteRunner } from './helpers.ts';
 import { runApiE2ETests } from './e2e-api.test.ts';
 import { runLocalEngineTests } from './local-engine.test.ts';

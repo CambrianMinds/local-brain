@@ -9,8 +9,8 @@ import {
 import {
   updateDocumentWithVersion,
   restoreDocumentVersion,
-} from '../src/services/localEngine.ts';
-import { DocumentItem, DocumentVersion } from '../src/types.ts';
+} from '../src/renderer/services/localEngine.ts';
+import { DocumentItem, DocumentVersion } from '../src/renderer/types.ts';
 
 export async function runVersioningTests(runner: TestSuiteRunner) {
   runner.setSuite('Document Versioning & State Management');

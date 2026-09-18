@@ -65,7 +65,9 @@ export const UploadModal: React.FC<UploadModalProps> = ({
     // Read content
     let content = '';
     try {
-      content = await file.text();
+      const buffer = await file.arrayBuffer();
+      const result = await window.api.parseDocument({ name: file.name, buffer });
+      content = result.text || '';
     } catch {
       content = `Extracted text from binary document ${file.name}.\nThis file was ingested into Local Brain on ${new Date().toLocaleDateString()}.`;
     }

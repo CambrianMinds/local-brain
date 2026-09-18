@@ -5,8 +5,8 @@ import {
   assertEqual,
   assertTrue,
 } from './helpers.ts';
-import { formatFileSize } from '../src/components/DocumentCard.tsx';
-import { INITIAL_DOCUMENTS, INITIAL_CATEGORIES } from '../src/data/seedData.ts';
+import { formatFileSize } from '../src/renderer/components/DocumentCard.tsx';
+import { INITIAL_DOCUMENTS, INITIAL_CATEGORIES } from '../src/renderer/data/seedData.ts';
 
 export const DEFAULT_SETTINGS = {
   aiProvider: 'gemini',

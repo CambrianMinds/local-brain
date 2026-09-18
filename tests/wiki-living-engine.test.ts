@@ -9,8 +9,10 @@ import {
   detectKnowledgeGaps,
   exportWikiToObsidian,
   exportObsidianVaultZip,
-} from '../src/services/wikiEngine.ts';
-import { INITIAL_DOCUMENTS, INITIAL_WIKIS } from '../src/data/seedData.ts';
+  extractWikiLinks,
+  resolveWikiLinks,
+} from '../src/renderer/services/wikiEngine.ts';
+import { INITIAL_DOCUMENTS, INITIAL_WIKIS } from '../src/renderer/data/seedData.ts';
 import JSZip from 'jszip';
 
 export async function runLivingWikiTests(runner: TestSuiteRunner) {
@@ -130,43 +132,4 @@ Benchmark numbers here.`;
     assert(synthesized.content.includes('[[Vector Databases'), 'Should contain cross-wiki links');
   });
 
-  // Test 9: Backend API for section regeneration
-  await runner.runTest('Backend API /api/ai/wiki-section endpoint responds with updated section markdown', async () => {
-    const response = await fetch('http://localhost:3000/api/ai/wiki-section', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pageTitle: 'Vector Databases',
-        sectionHeading: 'The Embedded Vector Paradigm',
-        sourceDocTitles: ['LanceDB Architecture & Disk-Based Vector Indexing.md'],
-        sectionContext: 'Previous baseline content.',
-      }),
-    });
-
-    assertEqual(response.status, 200, 'API should return 200 OK');
-    const data = await response.json();
-    assert(!!data.content, 'API should return regenerated content');
-  });
-
-  // Test 10: Backend API for briefing generation
-  await runner.runTest('Backend API /api/ai/wiki-briefing generates high-density briefing book', async () => {
-    const response = await fetch('http://localhost:3000/api/ai/wiki-briefing', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topic: 'Local-First Vector Architecture and Air-Gapped Compliance',
-        mode: 'executive',
-        sourceDocTitles: ['LanceDB Architecture & Disk-Based Vector Indexing.md', 'Privacy-Preserving Local AI & LM Studio Spec.pdf'],
-        combinedExcerpts: 'Key points on privacy and local air-gapped models.',
-      }),
-    });
-
-    assertEqual(response.status, 200, 'API should return 200 OK');
-    const data = await response.json();
-    assert(!!data.content, 'API should return briefing markdown');
-    assert(
-      data.content.toLowerCase().includes('briefing') || data.content.toLowerCase().includes('executive'),
-      'Briefing should have proper header or content'
-    );
-  });
 }

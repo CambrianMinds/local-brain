@@ -141,11 +141,7 @@ export async function fetchOpenRouterModels(apiKey?: string): Promise<{
   freeCount: number;
 }> {
   try {
-    const url = apiKey ? `/api/openrouter/models?apiKey=${encodeURIComponent(apiKey)}` : '/api/openrouter/models';
-    const res = await fetch(url);
-    if (res.ok) {
-      return await res.json();
-    }
+    return await window.api.getOpenRouterModels(apiKey);
   } catch (err) {
     console.warn('Could not fetch OpenRouter models:', err);
   }
@@ -159,11 +155,7 @@ export async function fetchLMStudioModels(url?: string): Promise<{
   message?: string;
 }> {
   try {
-    const target = url ? `/api/lmstudio/models?url=${encodeURIComponent(url)}` : '/api/lmstudio/models';
-    const res = await fetch(target);
-    if (res.ok) {
-      return await res.json();
-    }
+    return await window.api.getLmStudioModels(url);
   } catch (err) {
     console.warn('Could not ping LM Studio:', err);
   }
@@ -300,23 +292,16 @@ export async function askDocumentAI(
   options?: AIOptions
 ): Promise<{ answer: string; provider: string; confidence: number }> {
   try {
-    const res = await fetch('/api/ai/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        question,
-        documentTitle: doc.title,
-        documentContent: doc.content,
-        chunks: chunkText(doc.content, 400).slice(0, 4),
-        provider: options?.provider,
-        model: options?.model,
-        apiKey: options?.apiKey,
-        lmStudioUrl: options?.lmStudioUrl,
-      }),
+    return await window.api.askAI({
+      question,
+      documentTitle: doc.title,
+      documentContent: doc.content,
+      chunks: chunkText(doc.content, 400).slice(0, 4),
+      provider: options?.provider,
+      model: options?.model,
+      apiKey: options?.apiKey,
+      lmStudioUrl: options?.lmStudioUrl,
     });
-    if (res.ok) {
-      return await res.json();
-    }
   } catch (err) {
     console.warn('Network error reaching server AI, executing local assistant:', err);
   }
@@ -335,21 +320,14 @@ export async function summarizeDocumentAI(
   options?: AIOptions
 ): Promise<DocumentSummary & { provider?: string }> {
   try {
-    const res = await fetch('/api/ai/summarize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title,
-        content,
-        provider: options?.provider,
-        model: options?.model,
-        apiKey: options?.apiKey,
-        lmStudioUrl: options?.lmStudioUrl,
-      }),
+    return await window.api.summarizeAI({
+      title,
+      content,
+      provider: options?.provider,
+      model: options?.model,
+      apiKey: options?.apiKey,
+      lmStudioUrl: options?.lmStudioUrl,
     });
-    if (res.ok) {
-      return await res.json();
-    }
   } catch (err) {
     console.warn('Summarization server error, using local generator:', err);
   }
@@ -374,21 +352,14 @@ export async function categorizeDocumentAI(
   options?: AIOptions
 ): Promise<{ category: string; tags: string[] }> {
   try {
-    const res = await fetch('/api/ai/categorize', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title,
-        content,
-        provider: options?.provider,
-        model: options?.model,
-        apiKey: options?.apiKey,
-        lmStudioUrl: options?.lmStudioUrl,
-      }),
+    return await window.api.categorizeAI({
+      title,
+      content,
+      provider: options?.provider,
+      model: options?.model,
+      apiKey: options?.apiKey,
+      lmStudioUrl: options?.lmStudioUrl,
     });
-    if (res.ok) {
-      return await res.json();
-    }
   } catch (err) {
     console.warn('Auto-categorize server error, using local classifier');
   }
@@ -418,22 +389,15 @@ export async function generateWikiAI(
   options?: AIOptions
 ): Promise<{ content: string; title: string; provider: string }> {
   try {
-    const res = await fetch('/api/ai/wiki', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topic,
-        sourceDocTitles,
-        combinedExcerpts,
-        provider: options?.provider,
-        model: options?.model,
-        apiKey: options?.apiKey,
-        lmStudioUrl: options?.lmStudioUrl,
-      }),
+    return await window.api.wikiAI({
+      topic,
+      sourceDocTitles,
+      combinedExcerpts,
+      provider: options?.provider,
+      model: options?.model,
+      apiKey: options?.apiKey,
+      lmStudioUrl: options?.lmStudioUrl,
     });
-    if (res.ok) {
-      return await res.json();
-    }
   } catch (err) {
     console.warn('Wiki generation server error:', err);
   }
@@ -441,20 +405,6 @@ export async function generateWikiAI(
   return {
     title: topic,
     provider: 'Local Knowledge Synthesizer',
-    content: `# ${topic}
-
-> **Executive Overview**: Synthesized knowledge page aggregating architectural findings, benchmark results, and operational procedures across repository records (${sourceDocTitles.join(', ')}).
-
----
-
-## 1. System Overview & Problem Statement
-Modern desktop workflows require frictionless search across multi-format documents without cloud dependencies or telemetry leaks.
-
-## 2. Technical Findings
-- **High Recall**: Hybrid search combines dense vectors with exact token match.
-- **Embedded Storage**: LanceDB and SQLite provide lightweight, zero-configuration persistence.
-
-## 3. Reference Documents
-${sourceDocTitles.map(t => `- ${t}`).join('\n')}`,
+    content: `# ${topic}\n\n> **Executive Overview**: Synthesized knowledge page aggregating architectural findings, benchmark results, and operational procedures across repository records (${sourceDocTitles.join(', ')}).\n\n---\n\n## 1. System Overview & Problem Statement\nModern desktop workflows require frictionless search across multi-format documents without cloud dependencies or telemetry leaks.\n\n## 2. Technical Findings\n- **High Recall**: Hybrid search combines dense vectors with exact token match.\n- **Embedded Storage**: LanceDB and SQLite provide lightweight, zero-configuration persistence.\n\n## 3. Reference Documents\n${sourceDocTitles.map(t => `- ${t}`).join('\n')}`,
   };
 }

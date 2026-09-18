@@ -133,16 +133,16 @@ html, body, #root {
 /* Glassmorphic Surfaces */
 .glass-panel {
   background: var(--bg-glass);
-  backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-md);
 }
 
 .glass-panel-elevated {
   background: var(--bg-glass-strong);
-  backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid var(--border-medium);
   box-shadow: var(--shadow-lg);
 }
@@ -232,8 +232,8 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   background: var(--bg-glass);
-  backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   border-right: 1px solid var(--border-subtle);
   transition: width var(--duration-normal) var(--ease-out);
   width: 250px;
@@ -731,8 +731,8 @@ button.nav-item:not(.active):hover {
 /* Document Cards */
 .document-card {
   background: var(--bg-glass);
-  backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 16px;
@@ -796,8 +796,8 @@ button.nav-item:not(.active):hover {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -807,8 +807,8 @@ button.nav-item:not(.active):hover {
 
 .modal-content {
   background: var(--bg-glass-strong);
-  backdrop-filter: blur(24px) saturate(160%);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 0, 0, 0.6);
@@ -847,8 +847,8 @@ button.nav-item:not(.active):hover {
 .toast-item {
   pointer-events: auto;
   background: var(--bg-glass-strong);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--border-medium);
   border-left: 3px solid var(--accent);
   border-radius: var(--radius-md);

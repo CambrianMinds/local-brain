@@ -13,8 +13,8 @@ import {
   cosineSimilarity,
   chunkText,
   hybridSearch,
-} from '../src/services/localEngine.ts';
-import { DocumentItem } from '../src/types.ts';
+} from '../src/renderer/services/localEngine.ts';
+import { DocumentItem } from '../src/renderer/types.ts';
 
 export async function runLocalEngineTests(runner: TestSuiteRunner) {
   runner.setSuite('Local Engine & Retrieval Algorithms');

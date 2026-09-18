@@ -103,26 +103,21 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setTestingConnection(true);
     setConnectionStatus(null);
     try {
-      const res = await fetch('/api/ai/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: 'Health check query: Confirm system operation.',
-          documentTitle: 'System Diagnostic',
-          documentContent: 'Local Brain document intelligence platform initialization verified.',
-          provider: current.aiProvider,
-          model:
-            current.aiProvider === 'openrouter'
-              ? current.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free'
-              : current.aiProvider === 'lmstudio'
-              ? current.chatModel || 'meta-llama-3.2-3b-instruct'
-              : 'gemini-3.8-flash',
-          apiKey: current.openRouterApiKey,
-          lmStudioUrl: current.lmStudioUrl,
-        }),
+      const data = await window.api.askAI({
+        question: 'Health check query: Confirm system operation.',
+        documentTitle: 'System Diagnostic',
+        documentContent: 'Local Brain document intelligence platform initialization verified.',
+        provider: current.aiProvider,
+        model:
+          current.aiProvider === 'openrouter'
+            ? current.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free'
+            : current.aiProvider === 'lmstudio'
+            ? current.chatModel || 'meta-llama-3.2-3b-instruct'
+            : 'gemini-3.8-flash',
+        apiKey: current.openRouterApiKey,
+        lmStudioUrl: current.lmStudioUrl,
       });
-      const data = await res.json();
-      if (res.ok && data.answer) {
+      if (data.answer) {
         setConnectionStatus('success');
         setStatusMessage(`Active: ${data.provider} (${data.confidence ? Math.round(data.confidence * 100) + '% confidence' : 'Ready'})`);
       } else {
