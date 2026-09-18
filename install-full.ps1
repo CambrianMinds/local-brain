@@ -1,5 +1,5 @@
 # ==============================================================================
-# Local Brain — Full Edition Installer (PowerShell One-Liner)
+# Local Brain - Full Edition Installer (PowerShell One-Liner)
 # Usage: irm https://cambrianminds.github.io/local-brain/install-full.ps1 | iex
 # ==============================================================================
 
@@ -7,14 +7,11 @@ $ErrorActionPreference = "Stop"
 
 Write-Host @"
 
-  ██╗      ██████╗  ██████╗ █████╗ ██╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
-  ██║     ██╔═══██╗██╔════╝██╔══██╗██║     ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
-  ██║     ██║   ██║██║     ███████║██║     ██████╔╝██████╔╝███████║██║██╔██╗ ██║
-  ██║     ██║   ██║██║     ██╔══██║██║     ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
-  ███████╗╚██████╔╝╚██████╗██║  ██║███████╗██████╔╝██║  ██║██║  ██║██║██║ ╚████║
-  ╚══════╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
-          FULL EDITION (~3.6 GB — GEMMA-4 E2B WEIGHTS EMBEDDED)
-               Air-Gapped Sovereign Document Intelligence
+  ==============================================================
+                    LOCAL BRAIN - FULL EDITION
+       (~3.6 GB - Embedded Gemma-4 E2B Small Language Model)
+             Air-Gapped Sovereign Document Intelligence
+  ==============================================================
 
 "@ -ForegroundColor Magenta
 
@@ -77,7 +74,7 @@ $desktopLnk = "$env:USERPROFILE\Desktop\Local Brain Full.lnk"
 $sc1 = $wsh.CreateShortcut($desktopLnk)
 $sc1.TargetPath = $ExePath
 $sc1.WorkingDirectory = $InstallDir
-$sc1.Description = "Local Brain Full — Sovereign On-Device Document Intelligence"
+$sc1.Description = "Local Brain Full - Sovereign On-Device Document Intelligence"
 $sc1.Save()
 
 # Start Menu Shortcut
@@ -86,23 +83,25 @@ $startMenuLnk = "$startMenuDir\Local Brain Full.lnk"
 $sc2 = $wsh.CreateShortcut($startMenuLnk)
 $sc2.TargetPath = $ExePath
 $sc2.WorkingDirectory = $InstallDir
-$sc2.Description = "Local Brain Full — Sovereign On-Device Document Intelligence"
+$sc2.Description = "Local Brain Full - Sovereign On-Device Document Intelligence"
 $sc2.Save()
 
 Write-Host @"
 
-  ✔ Local Brain Full successfully installed!
+  [OK] Local Brain Full successfully installed!
   -------------------------------------------------------------
-  • Install Location: $InstallDir
-  • Embedded Model:   Gemma-4 E2B (Q4_K_M) + Multimodal Projector
-  • Desktop Shortcut: $desktopLnk
-  • Start Menu:       $startMenuLnk
+  - Install Location: $InstallDir
+  - Embedded Model:   Gemma-4 E2B (Q4_K_M) + Multimodal Projector
+  - Desktop Shortcut: $desktopLnk
+  - Start Menu:       $startMenuLnk
 
   Zero cloud egress. 100% private. Ready for immediate use.
 "@ -ForegroundColor Green
 
-# 5. Launch Prompt
-$response = Read-Host "Launch Local Brain Full now? (Y/n)"
-if ($response -eq "" -or $response -match "^[yY]") {
-    Start-Process -FilePath $ExePath -WorkingDirectory $InstallDir
+# 5. Launch Prompt (non-interactive friendly)
+if ($env:NON_INTERACTIVE -ne "1") {
+    $response = Read-Host "Launch Local Brain Full now? (Y/n)"
+    if ($response -eq "" -or $response -match "^[yY]") {
+        Start-Process -FilePath $ExePath -WorkingDirectory $InstallDir
+    }
 }
