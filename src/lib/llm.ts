@@ -64,32 +64,56 @@ export class LocalSLMEngine {
   /**
    * Discovers available .gguf files in models/llm
    */
-  public findGGUFModel(): string | null {
+  public findGGUFModel(preferredName?: string): string | null {
     if (!fs.existsSync(MODELS_LLM_DIR)) {
       return null;
     }
     const files = fs.readdirSync(MODELS_LLM_DIR);
-    // Filter out multimodal projectors (*-mmproj.gguf) which cannot be loaded as standalone base models
-    const ggufFile = files.find((f) => f.toLowerCase().endsWith('.gguf') && !f.toLowerCase().includes('mmproj'));
-    return ggufFile ? path.join(MODELS_LLM_DIR, ggufFile) : null;
+    // Filter out multimodal projectors (*-mmproj.gguf) and obsolete models
+    const validGgufFiles = files.filter(
+      (f) => f.toLowerCase().endsWith('.gguf') && !f.toLowerCase().includes('mmproj') && !f.toLowerCase().includes('dolphin-phi')
+    );
+    if (validGgufFiles.length === 0) return null;
+
+    // 1. Check if user-preferred model exists
+    if (preferredName) {
+      const match = validGgufFiles.find(
+        (f) => f.toLowerCase() === preferredName.toLowerCase() || f.toLowerCase().includes(preferredName.toLowerCase())
+      );
+      if (match) return path.join(MODELS_LLM_DIR, match);
+    }
+
+    // 2. Prioritize Gemma models
+    const gemmaMatch = validGgufFiles.find((f) => f.toLowerCase().includes('gemma'));
+    if (gemmaMatch) return path.join(MODELS_LLM_DIR, gemmaMatch);
+
+    // 3. Fallback to first valid GGUF
+    return path.join(MODELS_LLM_DIR, validGgufFiles[0]);
   }
 
   /**
    * Initializes getLlama, loads model and context with intelligent VRAM safety
    */
   public async initialize(modelPathOverride?: string): Promise<boolean> {
-    if (this.model && this.session) return true;
+    const targetModelPath = modelPathOverride || this.findGGUFModel();
+    if (!targetModelPath || !fs.existsSync(targetModelPath)) {
+      console.log('[LocalSLM] No valid GGUF model found in', MODELS_LLM_DIR);
+      return false;
+    }
+
+    // If already loaded with the same model, reuse session
+    if (this.model && this.session) {
+      if (this.activeModelPath === targetModelPath) {
+        return true;
+      }
+      // Target model changed; dispose previous instance before reloading
+      await this.dispose();
+    }
+
     if (this.isInitializing) return false;
 
     this.isInitializing = true;
     try {
-      const targetModelPath = modelPathOverride || this.findGGUFModel();
-      if (!targetModelPath || !fs.existsSync(targetModelPath)) {
-        console.log('[LocalSLM] No GGUF model found in', MODELS_LLM_DIR);
-        this.isInitializing = false;
-        return false;
-      }
-
       console.log(`[LocalSLM] Loading GGUF model from: ${targetModelPath}`);
       
       // Dynamic import of node-llama-cpp
@@ -106,15 +130,15 @@ export class LocalSLMEngine {
         selectedGpu = 'auto';
       } else if (explicitBackend === 'vulkan') {
         selectedGpu = 'vulkan';
-        offloadLayers = 12;
+        offloadLayers = 16;
       } else {
         // Auto: Prefer Vulkan for stable hybrid GPU + CPU offloading (e.g. Pascal GTX 1050 Ti)
         try {
           const probeVulkan = await getLlama({ gpu: 'vulkan' });
           if (probeVulkan.gpu === 'vulkan') {
             selectedGpu = 'vulkan';
-            offloadLayers = 12; // Hybrid CPU + GPU offloading like LM Studio
-            console.log('[LocalSLM] Vulkan hybrid GPU + CPU engine enabled (12 GPU offload layers).');
+            offloadLayers = 16; // 16 GPU offload layers for optimal VRAM fit and fast inference
+            console.log('[LocalSLM] Vulkan hybrid GPU + CPU engine enabled (16 GPU offload layers).');
           }
           await probeVulkan.dispose();
         } catch {
@@ -169,8 +193,12 @@ export class LocalSLMEngine {
   /**
    * Generate completion with ChatML formatting and timeout safety
    */
-  public async generate(prompt: string, options: GenerationOptions & { timeoutMs?: number } = {}): Promise<string> {
-    const isReady = await this.initialize();
+  public async generate(
+    prompt: string,
+    options: GenerationOptions & { timeoutMs?: number; modelName?: string } = {}
+  ): Promise<string> {
+    const targetPath = options.modelName ? this.findGGUFModel(options.modelName) : undefined;
+    const isReady = await this.initialize(targetPath ?? undefined);
     if (!isReady || !this.session) {
       throw new Error('Local SLM is not ready. Ensure a .gguf model exists in models/llm');
     }
@@ -183,14 +211,15 @@ export class LocalSLMEngine {
         ]);
       }
 
-      if (options.jsonMode) {
+      if (options.jsonMode && !finalPrompt.includes('JSON:')) {
         finalPrompt += '\n\nOutput valid raw JSON only with no markdown formatting.';
       }
 
-      const timeoutMs = options.timeoutMs || 45000;
+      const timeoutMs = options.timeoutMs || 180000;
       const promptPromise = this.session.prompt(finalPrompt, {
         temperature: options.temperature ?? 0.7,
-        maxTokens: options.maxTokens ?? 512,
+        maxTokens: options.maxTokens ?? 256,
+        customStopTriggers: ['<end_of_turn>', '</s>', '<turn|>', '```\n', '\n}\n'],
       });
 
       const timeoutPromise = new Promise<string>((_, reject) => {

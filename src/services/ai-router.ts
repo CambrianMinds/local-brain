@@ -88,6 +88,41 @@ export function generateDeterministicOfflineResponse(options: {
       };
     }
 
+    // Document Summarization request
+    if (prompt.includes('Analyze this document') || prompt.includes('Summarize') || prompt.includes('"brief"') || prompt.includes('brief":')) {
+      const titleMatch = prompt.match(/titled "([^"]+)"/i) || prompt.match(/Summarize "([^"]+)"/i);
+      const title = titleMatch ? titleMatch[1] : 'Document';
+
+      const contextMatch = prompt.match(/(?:Context|Document text|Document excerpt):\s*([\s\S]+?)(?:\n\s*Respond in|\n\s*Output raw|$)/i);
+      const rawText = (contextMatch ? contextMatch[1] : prompt).trim();
+      const sentences = rawText
+        .replace(/[\r\n]+/g, ' ')
+        .split(/(?<=[.?!])\s+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 20);
+
+      const brief = sentences[0]
+        ? (sentences[0].endsWith('.') ? sentences[0] : sentences[0] + '.')
+        : `Comprehensive analytical synthesis and architectural overview of ${title}.`;
+
+      const detailed = sentences.slice(0, 3).join(' ') || `${brief} It establishes operational parameters, design considerations, and domain-specific methodologies for reproducible local workflows.`;
+
+      const candidatePoints = sentences.slice(1, 6).filter((s) => s.length > 15 && s.length < 150);
+      const keyPoints = candidatePoints.length >= 2
+        ? candidatePoints.slice(0, 4)
+        : [
+            `Defines operational architecture and standards for ${title}`,
+            'Configures high-precision vector embeddings with zero cloud egress',
+            'Ensures full local privacy, determinism, and rapid retrieval',
+            'Outlines performance criteria and verifiable implementation steps',
+          ];
+
+      return {
+        text: JSON.stringify({ brief, detailed, keyPoints }),
+        providerName: 'Local Brain Neural Engine (Offline Heuristics)',
+      };
+    }
+
     return {
       text: JSON.stringify({
         brief: 'High-level synthesis: document defines system architecture, operational constraints, and data specifications.',
@@ -107,7 +142,7 @@ export function generateDeterministicOfflineResponse(options: {
     const topicMatch = prompt.match(/Topic:\s*([^\n]+)/i);
     const topic = topicMatch ? topicMatch[1].trim() : 'Knowledge Synthesis';
     return {
-      text: `# ${topic}\n\n> **Executive Overview**: This comprehensive technical and organizational knowledge page synthesizes architectural paradigms, benchmark results, and operational specifications extracted from repository documentation.\n\n---\n\n## 1. Architectural Foundations\nThe local-first intelligence architecture combines embedded LanceDB vector storage with SQLite WAL mode. Zero external data leakage ensures strict enterprise privacy compliance while maintaining sub-5ms query latencies.\n\n## 2. Key Synthesis & Insights\n- **Hybrid Retrieval**: Combines dense vector cosine distance with inverted index BM25 term weighting via Reciprocal Rank Fusion.\n- **Multi-Resolution Chunking**: 512-token segments with 64-token sliding window overlap preserve context across paragraph transitions.\n- **Native SLM Inference**: Embedded node-llama-cpp executes Qwen-2.5-3B locally without network hops.\n\n## 3. Operational Trade-offs\n- **Local Execution**: Zero-cost, 100% on-device privacy, highly predictable execution time.\n- **Multi-Provider Architecture**: Preserves optional cloud relays for high-parameter synthesis.\n\n## 4. References & Related Sources\n- Repository Ingested Documents\n- Local Brain Technical Specifications`,
+      text: `# ${topic}\n\n> **Executive Overview**: This comprehensive technical and organizational knowledge page synthesizes architectural paradigms, benchmark results, and operational specifications extracted from repository documentation.\n\n---\n\n## 1. Architectural Foundations\nThe local-first intelligence architecture combines embedded LanceDB vector storage with SQLite WAL mode. Zero external data leakage ensures strict enterprise privacy compliance while maintaining sub-5ms query latencies.\n\n## 2. Key Synthesis & Insights\n- **Hybrid Retrieval**: Combines dense vector cosine distance with inverted index BM25 term weighting via Reciprocal Rank Fusion.\n- **Multi-Resolution Chunking**: 512-token segments with 64-token sliding window overlap preserve context across paragraph transitions.\n- **Native SLM Inference**: Embedded node-llama-cpp executes Gemma-4 locally without network hops.\n\n## 3. Operational Trade-offs\n- **Local Execution**: Zero-cost, 100% on-device privacy, highly predictable execution time.\n- **Multi-Provider Architecture**: Preserves optional cloud relays for high-parameter synthesis.\n\n## 4. References & Related Sources\n- Repository Ingested Documents\n- Local Brain Technical Specifications`,
       providerName: 'Local Brain Knowledge Engine (Offline Heuristics)',
     };
   }
@@ -145,12 +180,14 @@ export async function routeLLM(options: RouterOptions): Promise<RouterResult> {
           jsonMode,
           temperature,
           maxTokens,
+          modelName: model,
         });
         if (text && text.trim()) {
+          const resolvedName = model ? (model.includes('.') ? model : model + '.gguf') : (slmStatus.modelName || 'Gemma-4-E2B');
           return {
             text,
-            providerName: `Local SLM (${slmStatus.modelName || 'Qwen-2.5-3B'})`,
-            modelUsed: slmStatus.modelName || 'qwen-2.5-3b',
+            providerName: `Local SLM (${resolvedName})`,
+            modelUsed: resolvedName,
             isOffline: true,
           };
         }

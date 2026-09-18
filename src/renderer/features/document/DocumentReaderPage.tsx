@@ -70,8 +70,22 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
   ]);
   const [isAsking, setIsAsking] = useState(false);
   const [isRegeneratingSummary, setIsRegeneratingSummary] = useState(false);
+  const [regenElapsedSeconds, setRegenElapsedSeconds] = useState(0);
   const [copied, setCopied] = useState(false);
   const [restoreNotification, setRestoreNotification] = useState<string | null>(null);
+
+  useEffect(() => {
+    let interval: any;
+    if (isRegeneratingSummary) {
+      setRegenElapsedSeconds(0);
+      interval = setInterval(() => {
+        setRegenElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setRegenElapsedSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [isRegeneratingSummary]);
 
   // Edit / New Version Modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -79,6 +93,12 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
   const [editContent, setEditContent] = useState(document.content);
   const [editChangeDescription, setEditChangeDescription] = useState('');
   const [expandedVersionId, setExpandedVersionId] = useState<string | null>(null);
+
+  // Synchronize edit fields if active document changes
+  useEffect(() => {
+    setEditTitle(document.title);
+    setEditContent(document.content);
+  }, [document.id, document.title, document.content]);
 
   // Quick provider selector state in reader chat and summary
   const [readerProvider, setReaderProvider] = useState<string>(settings?.aiProvider || aiProvider || 'local-slm');
@@ -134,7 +154,7 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
     return [
       {
         id: 'v-baseline-' + document.id,
-        versionNumber: document.version || 1,
+        versionNumber: 1,
         timestamp: document.createdAt || new Date().toISOString(),
         title: document.title,
         content: document.content,
@@ -144,7 +164,7 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
         tokenCount: document.tokenCount,
         tags: [...document.tags],
         category: document.category,
-        changeDescription: 'Initial ingestion baseline snapshot',
+        changeDescription: 'Initial ingestion baseline',
         author: 'Local Brain Ingestor',
       },
     ];
@@ -155,25 +175,32 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
     return chunkText(document.content, 512, 64);
   }, [document.content]);
 
-  const handleSendChat = async () => {
+  const handleAskQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!chatQuestion.trim() || isAsking) return;
-    const q = chatQuestion;
+
+    const userQ = chatQuestion.trim();
     setChatQuestion('');
-    setChatMessages((prev) => [...prev, { role: 'user', text: q }]);
+    setChatMessages((prev) => [...prev, { role: 'user', text: userQ }]);
     setIsAsking(true);
 
     try {
-      const response = await askDocumentAI(q, document, {
+      const response = await askDocumentQuestionAI(document, userQ, {
         provider: readerProvider as any,
         model: readerModel,
         apiKey: settings?.openRouterApiKey,
         lmStudioUrl: settings?.lmStudioUrl,
       });
+
       setChatMessages((prev) => [
         ...prev,
-        { role: 'assistant', text: response.answer, provider: response.provider },
+        {
+          role: 'assistant',
+          text: response.answer,
+          provider: response.provider || readerProvider,
+        },
       ]);
-    } catch {
+    } catch (err) {
       setChatMessages((prev) => [
         ...prev,
         {
@@ -201,13 +228,15 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
       const updated = updateDocumentWithVersion(
         document,
         { summary: newSummary },
-        'AI multi-level summary regenerated via ' + (readerModel || readerProvider)
+        'AI multi-level summary regenerated via ' + (newSummary.provider || readerModel || readerProvider)
       );
       onUpdateDocument(updated);
-      setRestoreNotification('AI summary regenerated & logged to version timeline!');
+      setRestoreNotification(`Summary synthesized via ${newSummary.provider || readerProvider}!`);
       setTimeout(() => setRestoreNotification(null), 3500);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setRestoreNotification('Error: ' + (err?.message || 'Failed to synthesize summary'));
+      setTimeout(() => setRestoreNotification(null), 3500);
     } finally {
       setIsRegeneratingSummary(false);
     }
@@ -582,7 +611,7 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
             {activeInspectorTab === 'summary' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontWeight: 600 }}>
                       Multi-Level AI Summary
                     </span>
@@ -599,6 +628,20 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
                       <option value="lmstudio">LM Studio (Local)</option>
                       <option value="gemini">Gemini (Server)</option>
                     </select>
+                    {document.summary?.provider && (
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          background: 'rgba(59, 130, 246, 0.1)',
+                          color: 'var(--accent)',
+                          border: '1px solid rgba(59, 130, 246, 0.2)',
+                        }}
+                      >
+                        {document.summary.provider}
+                      </span>
+                    )}
                   </div>
                   <button
                     onClick={handleRegenerateSummary}
@@ -608,9 +651,40 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
                     style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--accent)' }}
                   >
                     <RefreshCw size={11} className={isRegeneratingSummary ? 'animate-spin' : ''} />
-                    <span>{isRegeneratingSummary ? 'Generating...' : 'Regenerate Summary'}</span>
+                    <span>{isRegeneratingSummary ? `Synthesizing (${regenElapsedSeconds}s)...` : 'Regenerate Summary'}</span>
                   </button>
                 </div>
+
+                {/* Active Synthesis Progress Banner */}
+                {isRegeneratingSummary && (
+                  <div
+                    className="glass-panel"
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--accent)',
+                      background: 'rgba(59, 130, 246, 0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <RefreshCw size={13} className="animate-spin" style={{ color: 'var(--accent)' }} />
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent)' }}>
+                          Synthesizing Multi-Level Summary ({regenElapsedSeconds}s)
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
+                        Engine: {readerProvider === 'local-slm' ? 'Local Gemma-4 (Vulkan GPU)' : readerProvider}
+                      </span>
+                    </div>
+                    <div style={{ height: '3px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: '100%', background: 'var(--accent)', animation: 'pulse 1.2s infinite' }} />
+                    </div>
+                  </div>
+                )}
 
                 {/* Level 1: 1-line Brief */}
                 <div

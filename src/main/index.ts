@@ -5,10 +5,19 @@ import { executeLLM, CURATED_OPENROUTER_FREE_MODELS } from './services/ai/provid
 import { getAllProvidersStatus } from '../services/ai-router';
 import { localSLMEngine } from '../lib/llm';
 
+process.on('uncaughtException', (err) => {
+  console.error('[Main] Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Main] Unhandled Rejection:', reason);
+});
+
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: 'Local Brain',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.cjs'),
       nodeIntegration: false,
@@ -16,11 +25,24 @@ function createWindow() {
     },
   });
 
-  if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
-    mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
+  mainWindow.webContents.on('did-fail-load', (_, errorCode, errorDescription) => {
+    console.warn(`[Main] Window failed to load (code: ${errorCode}, desc: ${errorDescription})`);
+  });
+
+  const htmlPath = path.join(__dirname, '../renderer/index.html');
+
+  if (app.isPackaged) {
+    mainWindow.loadFile(htmlPath);
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+    // If running dev server on 5173, load it; otherwise load built html
+    fetch('http://localhost:5173')
+      .then(() => {
+        mainWindow.loadURL('http://localhost:5173');
+        mainWindow.webContents.openDevTools();
+      })
+      .catch(() => {
+        mainWindow.loadFile(htmlPath);
+      });
   }
 }
 
@@ -149,21 +171,15 @@ ipcMain.handle('ai:summarize', async (_, payload) => {
   const { title, content, provider, model, apiKey, lmStudioUrl } = payload;
   if (!content) return { error: 'Content is required' };
 
-  const prompt = `Analyze this document titled "${title || 'Untitled'}".
-Generate three distinct levels of summary in valid JSON format with keys:
-1. "brief": 1-2 concise, punchy sentences summarizing the core purpose and findings.
-2. "detailed": A comprehensive 1-2 paragraph analytical summary explaining the methodology, findings, and implications.
-3. "keyPoints": An array of 4-6 bullet point takeaways.
+  // For high-speed synthesis with Local SLM, use the first ~800 characters
+  const docExcerpt = content.slice(0, 800).trim();
+  
+  const prompt = `Summarize "${title || 'Untitled'}".
+Context: ${docExcerpt}
 
-Document text:
-${content.slice(0, 3000)}
-
-Output raw valid JSON only:
-{
-  "brief": "...",
-  "detailed": "...",
-  "keyPoints": ["...", "..."]
-}`;
+Respond in this exact JSON format:
+{"brief":"1 punchy sentence","detailed":"2 concise sentences explaining findings","keyPoints":["point 1","point 2","point 3"]}
+JSON:`;
 
   try {
     const result = await executeLLM({
@@ -174,24 +190,51 @@ Output raw valid JSON only:
       prompt,
       systemPrompt: 'You are an analytical document synthesis assistant. Output valid JSON only.',
       jsonMode: true,
-      maxTokens: 512,
+      maxTokens: 180,
     });
-    const cleaned = result.text.replace(/```json\n?|\n?```/g, '').trim();
-    const parsed = JSON.parse(cleaned);
-    if (parsed.brief && parsed.detailed && Array.isArray(parsed.keyPoints)) {
-      return { brief: parsed.brief, detailed: parsed.detailed, keyPoints: parsed.keyPoints, provider: result.providerName };
+    
+    // Robust JSON extraction matching outermost braces
+    const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.brief && parsed.detailed && Array.isArray(parsed.keyPoints)) {
+        return {
+          brief: parsed.brief,
+          detailed: parsed.detailed,
+          keyPoints: parsed.keyPoints,
+          provider: result.providerName || 'Local SLM Engine',
+        };
+      }
     }
   } catch (err: any) {
-    console.warn('[ai:summarize] LLM generation failed, using structured offline summary fallback:', err?.message || err);
+    console.warn('[ai:summarize] LLM generation failed, using dynamic document synthesis fallback:', err?.message || err);
   }
 
-  const paragraphs = content.split('\n\n').filter((p: string) => p.trim().length > 30);
-  const firstPara = paragraphs[0] || content.slice(0, 200);
+  // High-fidelity dynamic fallback synthesized directly from document content
+  const paras = content.split('\n\n').map((p: string) => p.trim()).filter((p: string) => p.length > 20);
+  const sentences = content.replace(/[\r\n]+/g, ' ').split(/(?<=[.?!])\s+/).map((s: string) => s.trim()).filter((s: string) => s.length > 20);
+
+  const briefText = sentences[0]
+    ? (sentences[0].endsWith('.') ? sentences[0] : sentences[0] + '.')
+    : `Comprehensive operational review and architectural specification for ${title || 'document'}.`;
+
+  const detailedText = paras.slice(0, 2).join('\n\n') || content.slice(0, 350);
+
+  const candidatePoints = sentences.slice(1, 6).filter((s: string) => !s.toLowerCase().includes('http') && s.length < 150);
+  const keyPoints = candidatePoints.length >= 2
+    ? candidatePoints.slice(0, 4)
+    : [
+        `Primary focus on ${title || 'document specifications'} and integration patterns`,
+        'Establishes baseline performance metrics and data structures',
+        'Configures local-first storage boundaries and privacy controls',
+        'Outlines operational guardrails and compliance parameters',
+      ];
+
   return {
-    brief: `Overview of ${title || 'document'}: highlights architectural constraints, core operational guidelines, and foundational parameters.`,
-    detailed: `${firstPara}\n\nThe document synthesizes key operational metrics, system requirements, and domain insights to enable automated semantic indexing and local retrieval workflows.`,
-    keyPoints: [ `Primary focus on ${title || 'document architecture'} and system integration`, 'Establishes baseline performance metrics and data structures', 'Configures local-first storage and retrieval boundaries', 'Outlines operational guardrails and compliance parameters' ],
-    provider: 'Local Brain Offline Summarizer',
+    brief: briefText,
+    detailed: detailedText,
+    keyPoints: keyPoints,
+    provider: 'Local Brain Dynamic Synthesizer (Offline)',
   };
 });
 
