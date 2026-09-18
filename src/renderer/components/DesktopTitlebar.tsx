@@ -78,6 +78,13 @@ export const DesktopTitlebar: React.FC<DesktopTitlebarProps> = ({
   const getProviderDisplay = () => {
     if (!settings) return { name: 'Gemini', icon: <Zap size={12} color="var(--warning)" />, model: 'gemini-3.8-flash' };
     switch (settings.aiProvider) {
+      case 'local-slm':
+        return {
+          name: 'Gemma-4 E2B',
+          icon: <Cpu size={12} color="var(--accent)" />,
+          model: 'gemma-4-e2b-it.Q4_K_M.gguf',
+          tag: 'Local GGUF',
+        };
       case 'openrouter':
         return {
           name: 'OpenRouter',
@@ -105,7 +112,7 @@ export const DesktopTitlebar: React.FC<DesktopTitlebarProps> = ({
 
   const providerInfo = getProviderDisplay();
 
-  const handleSelectProvider = (provider: 'lmstudio' | 'openrouter' | 'gemini') => {
+  const handleSelectProvider = (provider: 'local-slm' | 'lmstudio' | 'openrouter' | 'gemini') => {
     if (!settings || !onUpdateSettings) return;
     onUpdateSettings({
       ...settings,
@@ -188,6 +195,34 @@ export const DesktopTitlebar: React.FC<DesktopTitlebarProps> = ({
                 >
                   Configure ›
                 </button>
+              </div>
+
+              {/* Option 0: Local SLM (Gemma-4 E2B) */}
+              <div
+                onClick={() => handleSelectProvider('local-slm')}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: settings?.aiProvider === 'local-slm' ? 'var(--accent-dim)' : 'rgba(255, 255, 255, 0.02)',
+                  border: settings?.aiProvider === 'local-slm' ? '1px solid var(--accent)' : '1px solid transparent',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Cpu size={13} color="var(--accent)" />
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      Local SLM (Gemma-4 E2B)
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                    gemma-4-e2b-it.Q4_K_M.gguf (Embedded GGUF)
+                  </div>
+                </div>
+                {settings?.aiProvider === 'local-slm' && <Check size={14} color="var(--accent)" />}
               </div>
 
               {/* Option 1: OpenRouter */}

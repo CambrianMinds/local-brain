@@ -21,6 +21,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 }) => {
   const getModelSnippet = () => {
     if (!settings) return '';
+    if (aiProvider === 'local-slm') {
+      return ' (Gemma-4 E2B)';
+    }
     if (aiProvider === 'openrouter') {
       return ` (${(settings.openRouterModel || 'llama-3.2:free').split('/').pop()})`;
     }

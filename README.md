@@ -1,112 +1,168 @@
 <div align="center">
   <h1>Local Brain</h1>
-  <p><strong>A high-precision, privacy-first desktop document intelligence assistant.</strong></p>
+  <p><strong>Zero-Egress Desktop Document Intelligence & Embedded Fine-Tuned SLM Workstation.</strong></p>
   <p>
-    <a href="#what-is-local-brain">What is Local Brain?</a> *
-    <a href="#key-benefits">Key Benefits</a> *
-    <a href="#how-it-works">How it Works</a> *
-    <a href="#getting-started">Getting Started</a>
+    <a href="#what-is-local-brain">Overview</a> ·
+    <a href="#embedded-slm-engine">Embedded Gemma-4 Engine</a> ·
+    <a href="#key-capabilities">Key Capabilities</a> ·
+    <a href="#technical-architecture">Architecture</a> ·
+    <a href="#packaging--distribution">Packaging & Installers</a> ·
+    <a href="#getting-started">Getting Started</a> ·
+    <a href="https://cambrianminds.github.io/local-brain/">Live Showcase</a>
   </p>
 </div>
 
+---
+
 ## What is Local Brain?
 
-Local Brain is a private, intelligent document management system that runs directly on your computer. If you have hundreds of PDFs, notes, and research papers scattered across folders, finding the exact paragraph you need can be frustrating. Local Brain acts like a personal librarian with perfect memory.
+**Local Brain** is an air-gapped, zero-cloud desktop document intelligence platform designed for researchers, legal scholars, and enterprise teams handling sensitive intellectual property. It combines:
 
-Instead of just searching for keywords, you can ask Local Brain natural questions like "What did the Q3 report say about marketing budgets?" and it will read through your documents, find the exact answer, and even summarize it for you. 
+1. **Embedded On-Device SLM Inference**: A fine-tuned **Gemma-4 E2B** model executing locally in C++ via `node-llama-cpp` (v3). Zero Python, zero PyTorch, and zero external daemon servers required.
+2. **Dense Vector Search**: Embedded **LanceDB** vector storage providing sub-5ms cosine retrieval across chunked document embeddings.
+3. **Relational Document Catalog & Versioning**: **SQLite WAL** mode maintaining immutable revision history snapshots, tags, and category taxonomies.
+4. **Autonomous Synthesis & Wikis**: Synthesizes cross-document concepts into structured, multi-section knowledge articles with cited snippet references.
 
-The best part? It can do all of this offline. Your sensitive documents never leave your computer, ensuring absolute privacy.
+**Official Showcase**: [https://cambrianminds.github.io/local-brain/](https://cambrianminds.github.io/local-brain/)
 
-**Website**: [https://cambrianminds.github.io/local-brain/](https://cambrianminds.github.io/local-brain/)
+---
 
-## Key Benefits
+## Embedded SLM Engine
 
-- **Absolute Privacy**: You can run Local Brain completely offline. Your files are never uploaded to the cloud unless you explicitly choose to connect a cloud provider.
-- **Search by Meaning, Not Keywords**: Powered by "semantic search," Local Brain understands the context of your question. Even if you do not use the exact words written in the document, it will find what you are looking for.
-- **Automatic Organization**: When you add documents, Local Brain automatically tags and categorizes them (e.g., Finance, Technical, Legal), saving you from manual filing.
-- **Knowledge Wikis**: Select a topic or a group of documents, and Local Brain will synthesize the information into a comprehensive, encyclopedia-grade article.
-- **Flexible AI Integration**: You have the freedom to use local, offline models (via LM Studio) or connect to powerful cloud models (like Google Gemini or OpenRouter) if you prefer.
+Local Brain includes native support for embedded Small Language Models (SLMs) running directly within the Electron Node.js main process.
 
-## How it Works
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    Local Brain Desktop                       │
+├──────────────────────────────┬───────────────────────────────┤
+│    React UI (Renderer)       │    Node.js (Main Process)     │
+│  - Document Reader & Chat    │  - SQLite (library.db)        │
+│  - Settings & Model Select   │  - LanceDB (vector index)     │
+│  - Titlebar Quick Switcher   │  - node-llama-cpp (llama.cpp) │
+└──────────────┬───────────────┴───────────────┬───────────────┘
+               │           IPC Bridge          │
+               └───────────────────────────────┘
+                               │
+               ┌───────────────▼───────────────┐
+               │ Native C++ In-Process Engine  │
+               │   • node-llama-cpp (v3.21)    │
+               │   • Direct mmap memory mapping│
+               │   • AVX2 SIMD CPU / CUDA / VK │
+               └───────────────┬───────────────┘
+                               │
+         ┌─────────────────────▼─────────────────────┐
+         │ models/llm/gemma-4-e2b-it.Q4_K_M.gguf     │
+         │ models/llm/gemma-4-e2b-it.F16-mmproj.gguf │
+         └───────────────────────────────────────────┘
+```
 
-When you add a document to Local Brain, the system breaks it down into small chunks and converts the text into numbers (called "vectors"). These numbers represent the meaning of the text. 
+### Gemma-4 E2B Architecture & Fine-Tuning
+The local SLM engine supports fine-tuning with **Unsloth Core** (QLoRA) or direct out-of-the-box GGUF inference across structured enterprise domains:
+- **Enterprise Architecture**: Domain knowledge synthesis, API contracts, and distributed system topology analysis.
+- **Compliance & Governance**: Automated regulatory verification, internal policy auditing, and institutional guidelines.
+- **Technical Knowledge Synthesis**: Dense technical documentation parsing, cross-referencing, and contextual Q&A.
 
-When you ask a question, your question is also converted into numbers. Local Brain then finds the document chunks that have the most similar numbers to your question. Finally, it uses an AI text generator to read those specific chunks and write a clear answer for you.
+### Engine Telemetry
+- **Model Format**: GGUF v3 (`Q4_K_M` 4-bit quantization, 3.42 GB)
+- **Tensors**: 601 transformer weight tensors
+- **Multimodal Projector**: `clip` / `mmproj` (1411 tensors, 985 MB)
+- **Memory Management**: Zero-copy `mmap` memory mapping directly into system RAM.
+
+---
+
+## Packaging & Distribution
+
+Local Brain supports two packaging targets via `electron-builder`:
+
+### 1. Full Setup ("Batteries Included" — ~3.6 GB)
+Bundles the fine-tuned Gemma-4 E2B weights and multimodal projector inside `extraResources`. Ideal for air-gapped enterprise environments where no post-installation internet access is allowed.
+
+```bash
+npm run build:dist:full
+```
+*Output*: `dist/installer-full/Local-Brain-Full-Setup-1.0.0.exe`
+
+### 2. Minimal Setup ("Bring Your Own GGUF" — ~85 MB)
+A lightweight standalone installer containing the Electron runtime, React UI, LanceDB, and SQLite catalog. Users can drop any `.gguf` model (Gemma, Llama, Qwen) into the `models/llm/` directory.
+
+```bash
+npm run build:dist:minimal
+```
+*Output*: `dist/installer-minimal/Local-Brain-Minimal-Setup-1.0.0.exe`
+
+---
+
+## Key Capabilities
+
+- **Zero Cloud Egress**: Document parsing, chunking, embedding, vector search, and LLM text generation happen 100% on your machine.
+- **Semantic & Hybrid Search**: Queries match conceptual intent, not just string keywords, using Xenova/all-MiniLM-L6-v2 embeddings.
+- **Document Versioning**: Immutable timeline snapshots let you view diffs and restore previous revisions.
+- **Multi-Provider AI Router**: Seamlessly toggle between:
+  - **Local SLM**: Embedded Gemma-4 E2B GGUF
+  - **Local LM Studio**: Localhost daemon on port 1234
+  - **OpenRouter**: Access 100% free models (DeepSeek R1, Llama 3.2)
+  - **Google Gemini**: Server-side Gemini 2.5 / 3.8 Flash
+
+---
 
 ## Technical Architecture
 
-For developers looking to contribute or understand the stack:
-- **Frontend**: Built with React 19, Tailwind CSS v4, and Framer Motion for a fluid, responsive user interface.
-- **Backend**: An Express.js server handles API requests, document processing, and AI model orchestration.
-- **Storage**: Uses embedded LanceDB for vector storage and SQLite for relational catalog persistence (WAL mode for performance).
-- **AI Router**: A fallback multi-provider routing system seamlessly switches between LM Studio (local), Google GenAI, and OpenRouter APIs.
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend UI** | React 19, TypeScript, Lucide Icons, Vanilla CSS Design Tokens (Dark Theme / Glassmorphism) |
+| **Desktop Shell** | Electron 30, Context Isolation, Typed Preload IPC Bridge |
+| **Relational Metadata** | SQLite (better-sqlite3) with WAL Mode |
+| **Vector Database** | LanceDB (embedded vector index, cosine similarity) |
+| **Local SLM Engine** | `node-llama-cpp` (v3.21) with `llama.cpp` native bindings |
+| **Document Parsing** | `pdf-parse`, raw UTF-8 text/markdown chunking engine |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
+- **Node.js**: v20 or higher ([nodejs.org](https://nodejs.org/))
+- **Windows 10/11** (64-bit)
 
-1. **Node.js**: The underlying framework required to run the application. [Download it here](https://nodejs.org/) (version 20 or higher is recommended).
-2. **LM Studio (Optional)**: If you want to run the AI completely offline, you will need to download [LM Studio](https://lmstudio.ai/).
+### Development Setup
 
-### Installation
-
-Open your computer's terminal (or command prompt) and run the following commands:
-
-1. **Clone the repository** (Downloads the code to your machine):
+1. **Clone the Repository**:
    ```bash
    git clone https://github.com/CambrianMinds/local-brain.git
    cd local-brain
    ```
 
-2. **Install dependencies** (Downloads the required software packages):
+2. **Install Dependencies**:
    ```bash
    npm install
    ```
 
-3. **Start the application**:
+3. **Start the Application in Development**:
    ```bash
    npm run dev
    ```
 
-Once started, the application will be available in your web browser, typically at `http://localhost:3000`.
+### Building & Testing
 
-## Configuration
+```bash
+# Type check TypeScript codebase
+npm run lint
 
-You can configure Local Brain to use different AI models based on your needs.
+# Run all test suites
+npm test
 
-### Using LM Studio (100% Offline Mode)
+# Build production bundles
+npm run build:main
+npm run build:preload
+npm run build:renderer
 
-This is the recommended method for processing sensitive or confidential documents.
+# Package installers
+npm run build:dist:minimal
+npm run build:dist:full
+```
 
-1. Download and install [LM Studio](https://lmstudio.ai/).
-2. Open LM Studio and search for a conversational model (for example, `Llama-3.2-3B-Instruct` or `Qwen-2.5-7B`).
-3. Download the model and go to the "Local Server" tab in LM Studio.
-4. Start the server on port `1234`.
-5. Local Brain will automatically detect the running server and begin processing your documents entirely offline.
-
-### Using Cloud Providers (Gemini / OpenRouter)
-
-If you prefer to use powerful cloud models and your documents are not sensitive:
-
-1. Copy the example configuration file:
-   ```bash
-   cp .env.example .env.local
-   ```
-2. Open the new `.env.local` file in a text editor and add your API keys:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-
-## GitHub Pages Setup
-
-This repository includes a pre-built static landing page in the `/docs` directory. This is perfect for hosting a public website for the project.
-
-To enable it on GitHub:
-1. Go to your repository **Settings** -> **Pages**.
-2. Under **Build and deployment**, select **Deploy from a branch**.
-3. Select the `main` branch and change the folder from `/ (root)` to `/docs`.
-4. Click **Save**. Your site will be live shortly!
+---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License. Copyright © 2026 CambrianMinds. Built for complete individual and organizational data sovereignty.

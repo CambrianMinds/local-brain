@@ -1,0 +1,38 @@
+{
+  "appId": "com.cambrianminds.localbrain.full",
+  "productName": "Local Brain Full",
+  "directories": {
+    "output": "dist/installer-full"
+  },
+  "publish": null,
+  "files": [
+    "dist/main/**/*",
+    "dist/preload/**/*",
+    "dist/renderer/**/*",
+    "package.json"
+  ],
+  "asar": true,
+  "asarUnpack": [
+    "**/node_modules/node-llama-cpp/**"
+  ],
+  "extraResources": [
+    {
+      "from": "models",
+      "to": "models",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "artifactName": "Local-Brain-Full-Setup-${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

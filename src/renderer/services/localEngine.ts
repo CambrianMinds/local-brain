@@ -129,7 +129,7 @@ export function hybridSearch(
 
 // Client-Server Bridge for AI Operations
 export interface AIOptions {
-  provider?: 'lmstudio' | 'openrouter' | 'gemini' | 'hybrid';
+  provider?: 'lmstudio' | 'openrouter' | 'gemini' | 'hybrid' | 'local-slm';
   model?: string;
   apiKey?: string;
   lmStudioUrl?: string;

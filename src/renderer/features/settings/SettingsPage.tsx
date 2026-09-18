@@ -54,11 +54,30 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [lmStudioConnected, setLmStudioConnected] = useState<boolean | null>(null);
   const [lmStudioStatusMsg, setLmStudioStatusMsg] = useState('');
 
+  // Native Local SLM state
+  const [slmStatus, setSlmStatus] = useState<any>(null);
+  const [isLoadingSLM, setIsLoadingSLM] = useState(false);
+
   // Initial load of models on mount
   useEffect(() => {
     handleFetchOpenRouterModels(current.openRouterApiKey);
     handleFetchLMStudioModels(current.lmStudioUrl);
+    handleFetchSLMStatus();
   }, []);
+
+  const handleFetchSLMStatus = async () => {
+    setIsLoadingSLM(true);
+    try {
+      if (window.api && window.api.getSLMStatus) {
+        const s = await window.api.getSLMStatus();
+        setSlmStatus(s);
+      }
+    } catch (e) {
+      console.warn('Failed to load SLM status:', e);
+    } finally {
+      setIsLoadingSLM(false);
+    }
+  };
 
   const handleFetchOpenRouterModels = async (apiKey?: string) => {
     setIsLoadingOpenRouter(true);
@@ -109,7 +128,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         documentContent: 'Local Brain document intelligence platform initialization verified.',
         provider: current.aiProvider,
         model:
-          current.aiProvider === 'openrouter'
+          current.aiProvider === 'local-slm'
+            ? 'gemma-4-e2b-it.Q4_K_M.gguf'
+            : current.aiProvider === 'openrouter'
             ? current.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free'
             : current.aiProvider === 'lmstudio'
             ? current.chatModel || 'meta-llama-3.2-3b-instruct'
@@ -205,8 +226,51 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </span>
             </div>
 
-            {/* 3 Provider Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+            {/* 4 Provider Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
+              {/* Card 0: Local SLM */}
+              <div
+                onClick={() => setCurrent({ ...current, aiProvider: 'local-slm' })}
+                style={{
+                  padding: '16px',
+                  borderRadius: 'var(--radius-md)',
+                  border:
+                    current.aiProvider === 'local-slm'
+                      ? '2px solid var(--accent)'
+                      : '1px solid var(--border-medium)',
+                  background:
+                    current.aiProvider === 'local-slm'
+                      ? 'var(--accent-dim)'
+                      : 'rgba(255, 255, 255, 0.02)',
+                  cursor: 'pointer',
+                  transition: 'all var(--duration-fast) var(--ease-out)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <Cpu size={16} style={{ color: 'var(--accent)' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Local SLM (Gemma 4)
+                  </span>
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  Zero network egress. Runs embedded GGUF on device with node-llama-cpp.
+                </p>
+                <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: slmStatus?.available ? 'var(--accent)' : 'var(--warning)',
+                    }}
+                  />
+                  <span style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>
+                    {slmStatus?.available ? 'GGUF Model Ready' : 'Searching models/llm'}
+                  </span>
+                </div>
+              </div>
+
               {/* Card 1: LM Studio */}
               <div
                 onClick={() => setCurrent({ ...current, aiProvider: 'lmstudio' })}
@@ -329,6 +393,89 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
 
             {/* Provider Configuration Details */}
+            {/* 0. LOCAL SLM CONFIGURATION */}
+            {current.aiProvider === 'local-slm' && (
+              <div
+                style={{
+                  padding: '18px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Cpu size={15} style={{ color: 'var(--accent)' }} />
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      Local SLM Engine (Embedded node-llama-cpp)
+                    </span>
+                  </div>
+                  <span
+                    className="tag-pill accent"
+                    style={{ fontSize: '10px', fontWeight: 600 }}
+                  >
+                    100% On-Device Offline
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    border: '1px solid var(--border-subtle)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    fontSize: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Detected Model:</span>
+                    <span style={{ color: 'var(--accent)', fontWeight: 600, fontFamily: 'monospace' }}>
+                      {slmStatus?.modelName || 'gemma-4-e2b-it.Q4_K_M.gguf'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Model Path:</span>
+                    <span style={{ color: 'var(--text-tertiary)', fontSize: '11px', fontFamily: 'monospace' }}>
+                      models/llm/gemma-4-e2b-it.Q4_K_M.gguf
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Architecture & Quant:</span>
+                    <span style={{ color: 'var(--text-primary)' }}>Gemma-4 E2B · Q4_K_M (3.42 GB)</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Multimodal Projector:</span>
+                    <span style={{ color: 'var(--text-primary)' }}>gemma-4-e2b-it.F16-mmproj.gguf (Present)</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Context Window:</span>
+                    <span style={{ color: 'var(--text-primary)' }}>{slmStatus?.contextSize || 2048} tokens</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    onClick={handleFetchSLMStatus}
+                    disabled={isLoadingSLM}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <RefreshCw size={12} className={isLoadingSLM ? 'animate-spin' : ''} />
+                    <span>Rescan models/llm Directory</span>
+                  </button>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                    {slmStatus?.message || 'Ready for On-Device Inference'}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* 1. OPENROUTER CONFIGURATION */}
             {current.aiProvider === 'openrouter' && (
               <div

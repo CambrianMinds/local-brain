@@ -1,0 +1,38 @@
+{
+  "appId": "com.cambrianminds.localbrain.minimal",
+  "productName": "Local Brain Minimal",
+  "directories": {
+    "output": "dist/installer-minimal"
+  },
+  "publish": null,
+  "files": [
+    "dist/main/**/*",
+    "dist/preload/**/*",
+    "dist/renderer/**/*",
+    "package.json"
+  ],
+  "asar": true,
+  "asarUnpack": [
+    "**/node_modules/node-llama-cpp/**"
+  ],
+  "extraResources": [
+    {
+      "from": "models/embeddings",
+      "to": "models/embeddings",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "artifactName": "Local-Brain-Minimal-Setup-${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

@@ -2,14 +2,26 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 
-// Determine base directory across ESM and CJS
-const getBaseDir = (): string => {
-  if (typeof __dirname === 'string') return __dirname;
-  return process.cwd();
+// Cross-platform path resolution for models/llm supporting both dev and packaged electron
+const getModelsDir = (): string => {
+  // 1. Packaged Electron executable (extraResources)
+  if ((process as any).resourcesPath) {
+    const packagedPath = path.join((process as any).resourcesPath, 'models', 'llm');
+    if (fs.existsSync(packagedPath)) return packagedPath;
+  }
+  // 2. Working directory relative (dev mode)
+  const cwdPath = path.resolve(process.cwd(), 'models', 'llm');
+  if (fs.existsSync(cwdPath)) return cwdPath;
+
+  // 3. CJS __dirname fallback
+  if (typeof __dirname === 'string') {
+    const relPath = path.resolve(__dirname, '..', '..', 'models', 'llm');
+    if (fs.existsSync(relPath)) return relPath;
+  }
+  return cwdPath;
 };
 
-// Cross-platform path resolution for models/llm
-const MODELS_LLM_DIR = path.resolve(getBaseDir(), typeof __dirname === 'string' ? path.join('..', '..', 'models', 'llm') : path.join('models', 'llm'));
+const MODELS_LLM_DIR = getModelsDir();
 
 export interface LocalSLMStatus {
   available: boolean;

@@ -81,9 +81,11 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
   const [expandedVersionId, setExpandedVersionId] = useState<string | null>(null);
 
   // Quick provider selector state in reader chat
-  const [readerProvider, setReaderProvider] = useState<string>(settings?.aiProvider || aiProvider || 'gemini');
+  const [readerProvider, setReaderProvider] = useState<string>(settings?.aiProvider || aiProvider || 'local-slm');
   const [readerModel, setReaderModel] = useState<string>(
-    settings?.aiProvider === 'openrouter'
+    settings?.aiProvider === 'local-slm'
+      ? 'gemma-4-e2b-it.Q4_K_M.gguf'
+      : settings?.aiProvider === 'openrouter'
       ? settings?.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free'
       : settings?.aiProvider === 'lmstudio'
       ? settings?.chatModel || 'meta-llama-3.2-3b-instruct'
@@ -639,7 +641,9 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
                       onChange={(e) => {
                         const newProv = e.target.value;
                         setReaderProvider(newProv);
-                        if (newProv === 'openrouter') {
+                        if (newProv === 'local-slm') {
+                          setReaderModel('gemma-4-e2b-it.Q4_K_M.gguf');
+                        } else if (newProv === 'openrouter') {
                           setReaderModel(settings?.openRouterModel || 'meta-llama/llama-3.2-3b-instruct:free');
                         } else if (newProv === 'lmstudio') {
                           setReaderModel(settings?.chatModel || 'meta-llama-3.2-3b-instruct');
@@ -649,9 +653,10 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
                       }}
                       style={{ padding: '2px 6px', fontSize: '11px', height: '26px' }}
                     >
-                      <option value="gemini">Gemini (Server)</option>
+                      <option value="local-slm">Local SLM (Gemma-4 E2B GGUF)</option>
                       <option value="openrouter">OpenRouter (Free Models)</option>
                       <option value="lmstudio">LM Studio (Local)</option>
+                      <option value="gemini">Gemini (Server)</option>
                     </select>
                   </div>
 

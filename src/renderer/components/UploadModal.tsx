@@ -106,7 +106,9 @@ export const UploadModal: React.FC<UploadModalProps> = ({
         ? {
             provider: settings.aiProvider,
             model:
-              settings.aiProvider === 'openrouter'
+              settings.aiProvider === 'local-slm'
+                ? 'gemma-4-e2b-it.Q4_K_M.gguf'
+                : settings.aiProvider === 'openrouter'
                 ? settings.openRouterModel
                 : settings.aiProvider === 'lmstudio'
                 ? settings.chatModel

@@ -164,7 +164,7 @@ export interface WikiPage {
 }
 
 export interface SettingsConfig {
-  aiProvider: 'lmstudio' | 'openrouter' | 'gemini' | 'hybrid';
+  aiProvider: 'lmstudio' | 'openrouter' | 'gemini' | 'hybrid' | 'local-slm';
   lmStudioUrl: string;
   openRouterApiKey?: string;
   openRouterModel?: string;
