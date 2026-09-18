@@ -822,6 +822,73 @@ section {
     color: var(--text-tertiary);
 }
 
+/* Quick Install One-Liner Elements */
+.quick-install-box {
+    margin-bottom: 12px;
+}
+
+.box-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--accent-cyan);
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.box-label i {
+    width: 13px;
+    height: 13px;
+}
+
+.secondary-build-cmd {
+    opacity: 0.6;
+    font-size: 10px;
+}
+
+.hero-quick-install {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.quick-install-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+}
+
+.quick-install-label i {
+    width: 14px;
+    height: 14px;
+    color: var(--accent-cyan);
+}
+
+.quick-install-bar {
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    border-radius: var(--radius-md);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 0 12px rgba(6, 182, 212, 0.1);
+}
+
+.quick-install-bar code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent-cyan);
+    letter-spacing: -0.2px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .nav-links a:not(.btn) {
@@ -833,4 +900,10 @@ section {
     .hero-title {
         font-size: 32px;
     }
+    .quick-install-bar {
+        flex-direction: column;
+        gap: 8px;
+        font-size: 11px;
+    }
 }
+

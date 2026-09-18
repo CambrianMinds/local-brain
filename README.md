@@ -70,6 +70,27 @@ The local SLM engine supports fine-tuning with **Unsloth Core** (QLoRA) or direc
 
 ---
 
+## Quick Install (PowerShell One-Liner)
+
+Open Windows PowerShell and run one of the following commands:
+
+### ⚡ Full Edition (~3.6 GB — Bundled Gemma-4 E2B Weights)
+```powershell
+irm https://cambrianminds.github.io/local-brain/install-full.ps1 | iex
+```
+
+### 🪶 Minimal Edition (~85 MB — Bring Your Own GGUF)
+```powershell
+irm https://cambrianminds.github.io/local-brain/install-minimal.ps1 | iex
+```
+
+Or run the interactive installer selector:
+```powershell
+irm https://cambrianminds.github.io/local-brain/install.ps1 | iex
+```
+
+---
+
 ## Packaging & Distribution
 
 Local Brain supports two packaging targets via `electron-builder`:

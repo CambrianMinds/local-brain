@@ -76,6 +76,16 @@
                 </a>
             </div>
 
+            <div class="hero-quick-install">
+                <span class="quick-install-label"><i data-lucide="terminal"></i> One-Line Install (PowerShell):</span>
+                <div class="quick-install-bar">
+                    <code>irm https://cambrianminds.github.io/local-brain/install.ps1 | iex</code>
+                    <button class="copy-btn" data-copy="irm https://cambrianminds.github.io/local-brain/install.ps1 | iex" title="Copy one-liner">
+                        <i data-lucide="copy"></i>
+                    </button>
+                </div>
+            </div>
+
             <!-- Quick Specs Ribbon -->
             <div class="specs-ribbon">
                 <div class="spec-item">
@@ -213,11 +223,17 @@
                         <li><i data-lucide="check"></i> NSIS Windows Installer with directory select</li>
                     </ul>
                     <div class="card-actions">
-                        <div class="build-command">
+                        <div class="quick-install-box">
+                            <span class="box-label"><i data-lucide="terminal"></i> PowerShell One-Liner (Full)</span>
+                            <div class="build-command">
+                                <code>irm https://cambrianminds.github.io/local-brain/install-full.ps1 | iex</code>
+                                <button class="copy-btn" data-copy="irm https://cambrianminds.github.io/local-brain/install-full.ps1 | iex" title="Copy command"><i data-lucide="copy"></i></button>
+                            </div>
+                        </div>
+                        <div class="build-command secondary-build-cmd">
                             <code>npm run build:dist:full</code>
                             <button class="copy-btn" data-copy="npm run build:dist:full" title="Copy command"><i data-lucide="copy"></i></button>
                         </div>
-                        <span class="artifact-label">Output: <code>Local-Brain-Full-Setup-1.0.0.exe</code></span>
                     </div>
                 </div>
 
@@ -240,11 +256,17 @@
                         <li><i data-lucide="check"></i> Supports any Llama / Gemma / Qwen GGUF</li>
                     </ul>
                     <div class="card-actions">
-                        <div class="build-command">
+                        <div class="quick-install-box">
+                            <span class="box-label"><i data-lucide="terminal"></i> PowerShell One-Liner (Minimal)</span>
+                            <div class="build-command">
+                                <code>irm https://cambrianminds.github.io/local-brain/install-minimal.ps1 | iex</code>
+                                <button class="copy-btn" data-copy="irm https://cambrianminds.github.io/local-brain/install-minimal.ps1 | iex" title="Copy command"><i data-lucide="copy"></i></button>
+                            </div>
+                        </div>
+                        <div class="build-command secondary-build-cmd">
                             <code>npm run build:dist:minimal</code>
                             <button class="copy-btn" data-copy="npm run build:dist:minimal" title="Copy command"><i data-lucide="copy"></i></button>
                         </div>
-                        <span class="artifact-label">Output: <code>Local-Brain-Minimal-Setup-1.0.0.exe</code></span>
                     </div>
                 </div>
             </div>
