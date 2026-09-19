@@ -293,26 +293,36 @@ export async function askDocumentAI(
   options?: AIOptions
 ): Promise<{ answer: string; provider: string; confidence: number }> {
   try {
-    return await window.api.askAI({
-      question,
-      documentTitle: doc.title,
-      documentContent: doc.content,
-      chunks: chunkText(doc.content, 400).slice(0, 4),
-      provider: options?.provider,
-      model: options?.model,
-      apiKey: options?.apiKey,
-      xaiApiKey: options?.xaiApiKey,
-      lmStudioUrl: options?.lmStudioUrl,
-    });
-  } catch (err) {
-    console.warn('Network error reaching server AI, executing local assistant:', err);
+    if (window.api && window.api.askAI) {
+      return await window.api.askAI({
+        question,
+        documentTitle: doc.title,
+        documentContent: doc.content,
+        chunks: chunkText(doc.content, 400).slice(0, 4),
+        provider: options?.provider,
+        model: options?.model,
+        apiKey: options?.apiKey,
+        xaiApiKey: options?.xaiApiKey,
+        lmStudioUrl: options?.lmStudioUrl,
+      });
+    }
+  } catch (err: any) {
+    console.warn('Error during askAI execution:', err);
+    return {
+      answer: `[Inference Error]: ${err?.message || 'Failed to reach AI model. Please verify your settings and connection.'}`,
+      provider: `${options?.provider || 'AI'} (Error)`,
+      confidence: 0,
+    };
   }
 
-  // Pure local fallback
+  // Fallback for non-Electron test environments
+  const sentences = doc.content.replace(/[\r\n]+/g, ' ').split(/(?<=[.?!])\s+/).filter((s) => s.length > 20);
   return {
-    answer: `Based on "${doc.title}": The document articulates key principles and technical criteria covering ${question}. In particular, Section 2 provides guidance on configuration and operational parameters.`,
-    provider: 'Local Brain Neural Heuristic (Offline)',
-    confidence: 0.88,
+    answer: sentences[0]
+      ? `From "${doc.title}": ${sentences[0]}`
+      : `Based on "${doc.title}": No matching excerpt found for "${question}".`,
+    provider: 'Local Brain Citation',
+    confidence: 0.75,
   };
 }
 
@@ -330,30 +340,41 @@ export async function summarizeDocumentAI(
   options?: AIOptions
 ): Promise<DocumentSummary & { provider?: string }> {
   try {
-    return await window.api.summarizeAI({
-      title,
-      content,
-      provider: options?.provider,
-      model: options?.model,
-      apiKey: options?.apiKey,
-      xaiApiKey: options?.xaiApiKey,
-      lmStudioUrl: options?.lmStudioUrl,
-    });
-  } catch (err) {
-    console.warn('Summarization server error, using local generator:', err);
+    if (window.api && window.api.summarizeAI) {
+      const res = await window.api.summarizeAI({
+        title,
+        content,
+        provider: options?.provider,
+        model: options?.model,
+        apiKey: options?.apiKey,
+        xaiApiKey: options?.xaiApiKey,
+        lmStudioUrl: options?.lmStudioUrl,
+      });
+      if (res && res.brief) return res;
+    }
+  } catch (err: any) {
+    console.warn('Summarization error:', err);
+    throw new Error(err?.message || 'Failed to synthesize summary with selected model.');
   }
 
-  const paras = content.split('\n\n').filter(p => p.trim().length > 20);
+  // Real excerpt extraction fallback when running outside Electron or offline
+  const paras = content.split('\n\n').map((p) => p.trim()).filter((p) => p.length > 20);
+  const sentences = content.replace(/[\r\n]+/g, ' ').split(/(?<=[.?!])\s+/).map((s) => s.trim()).filter((s) => s.length > 20);
+
+  const brief = sentences[0] || `Overview of ${title}.`;
+  const detailed = paras.slice(0, 2).join('\n\n') || content.slice(0, 300);
+  const keyPoints = sentences.slice(1, 5).length >= 2
+    ? sentences.slice(1, 5)
+    : [
+        `Summary extracted from ${title}`,
+        'See document content for complete details',
+      ];
+
   return {
-    brief: `High-level review of ${title}: describes architectural design, compliance requirements, and system capabilities.`,
-    detailed: `${paras[0] || content.slice(0, 200)}\n\nThe material provides verified specifications, benchmark insights, and deployment guidelines for high-throughput semantic processing.`,
-    keyPoints: [
-      `Key operational principles established for ${title}`,
-      'Guarantees on-device privacy and low latency',
-      'Configures data structures for vector similarity queries',
-      'Provides reproducible benchmarks across desktop targets',
-    ],
-    provider: 'Local Offline Parser',
+    brief,
+    detailed,
+    keyPoints,
+    provider: 'Document Content Extractor',
   };
 }
 

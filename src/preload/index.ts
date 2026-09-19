@@ -13,5 +13,6 @@ contextBridge.exposeInMainWorld('api', {
   wikiSectionAI: (payload: any) => ipcRenderer.invoke('ai:wiki-section', payload),
   wikiBriefingAI: (payload: any) => ipcRenderer.invoke('ai:wiki-briefing', payload),
   testXAI: (apiKey?: string) => ipcRenderer.invoke('ai:testXAI', apiKey),
+  getEnvKeys: () => ipcRenderer.invoke('ai:getEnvKeys'),
   parseDocument: (file: any) => ipcRenderer.invoke('fs:parseDocument', file),
 });

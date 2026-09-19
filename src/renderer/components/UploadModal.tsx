@@ -122,7 +122,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
               : settings.aiProvider === 'lmstudio'
               ? settings.chatModel
               : settings.aiProvider === 'xai'
-              ? settings.xaiModel || 'grok-2-latest'
+              ? settings.xaiModel || 'grok-4.20-non-reasoning'
               : 'gemini-3.8-flash',
           apiKey: settings.aiProvider === 'xai' ? settings.xaiApiKey : settings.openRouterApiKey,
           xaiApiKey: settings.xaiApiKey,

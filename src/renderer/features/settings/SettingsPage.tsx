@@ -75,6 +75,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     handleFetchOpenRouterModels(current.openRouterApiKey);
     handleFetchLMStudioModels(current.lmStudioUrl);
     handleFetchSLMStatus();
+
+    // Auto-detect environment keys if not yet saved in current state
+    if (window.api && window.api.getEnvKeys) {
+      window.api.getEnvKeys().then((keys) => {
+        if (keys && keys.xaiApiKey && !current.xaiApiKey) {
+          setCurrent((prev) => ({
+            ...prev,
+            xaiApiKey: keys.xaiApiKey,
+            xaiModel: (!prev.xaiModel || prev.xaiModel.startsWith('grok-2')) ? 'grok-4.20-non-reasoning' : prev.xaiModel,
+          }));
+        }
+      }).catch(() => {});
+    }
   }, []);
 
   const handleFetchSLMStatus = async () => {
@@ -168,18 +181,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             : current.aiProvider === 'lmstudio'
             ? current.chatModel || 'meta-llama-3.2-3b-instruct'
             : current.aiProvider === 'xai'
-            ? current.xaiModel || 'grok-2-latest'
+            ? current.xaiModel || 'grok-4.20-non-reasoning'
             : 'gemini-3.8-flash',
         apiKey: current.aiProvider === 'xai' ? current.xaiApiKey : current.openRouterApiKey,
         xaiApiKey: current.xaiApiKey,
         lmStudioUrl: current.lmStudioUrl,
       });
-      if (data.answer) {
+      if (data.answer && !data.answer.startsWith('[') && !data.answer.includes('Error')) {
         setConnectionStatus('success');
         setStatusMessage(`Active: ${data.provider} (${data.confidence ? Math.round(data.confidence * 100) + '% confidence' : 'Ready'})`);
       } else {
         setConnectionStatus('failed');
-        setStatusMessage(data.error || 'Provider returned an error');
+        setStatusMessage(data.answer || data.error || 'Provider returned an error');
       }
     } catch (err: any) {
       setConnectionStatus('failed');
@@ -426,7 +439,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   </span>
                 </div>
                 <p style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                  Grok 2 reasoning & speed via official xAI API key.
+                  Grok 4.20 speed & deep reasoning via official xAI API key.
                 </p>
                 <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span
@@ -933,26 +946,33 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   </label>
                   <select
                     className="input-base"
-                    value={current.xaiModel || 'grok-2-latest'}
+                    value={current.xaiModel || 'grok-4.20-non-reasoning'}
                     onChange={(e) => setCurrent({ ...current, xaiModel: e.target.value })}
                   >
-                    <option value="grok-2-latest">grok-2-latest (State of the art reasoning &amp; chat)</option>
-                    <option value="grok-2">grok-2</option>
-                    <option value="grok-2-vision-1212">grok-2-vision-1212 (Multimodal)</option>
-                    <option value="grok-beta">grok-beta</option>
+                    <option value="grok-4.20-non-reasoning">grok-4.20-non-reasoning (Fast &amp; Concise - Recommended)</option>
+                    <option value="grok-4.20">grok-4.20 (Deep Reasoning)</option>
+                    <option value="grok-4.3">grok-4.3</option>
+                    <option value="grok-build-0.1">grok-build-0.1 (Grok Code Fast)</option>
+                    <option value="grok-4.5">grok-4.5</option>
                   </select>
 
                   {/* Chips */}
                   <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {['grok-2-latest', 'grok-2', 'grok-2-vision-1212', 'grok-beta'].map((m) => (
+                    {[
+                      { id: 'grok-4.20-non-reasoning', label: 'grok-4.20-non-reasoning (Fast)' },
+                      { id: 'grok-4.20', label: 'grok-4.20 (Reasoning)' },
+                      { id: 'grok-4.3', label: 'grok-4.3' },
+                      { id: 'grok-build-0.1', label: 'grok-build-0.1' },
+                      { id: 'grok-4.5', label: 'grok-4.5' },
+                    ].map((m) => (
                       <button
-                        key={m}
+                        key={m.id}
                         type="button"
-                        onClick={() => setCurrent({ ...current, xaiModel: m })}
-                        className={`btn btn-sm ${current.xaiModel === m ? 'btn-primary' : 'btn-secondary'}`}
+                        onClick={() => setCurrent({ ...current, xaiModel: m.id })}
+                        className={`btn btn-sm ${current.xaiModel === m.id ? 'btn-primary' : 'btn-secondary'}`}
                         style={{ fontSize: '10px', padding: '2px 8px' }}
                       >
-                        {m}
+                        {m.label}
                       </button>
                     ))}
                   </div>

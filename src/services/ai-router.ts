@@ -201,86 +201,132 @@ export async function routeLLM(options: RouterOptions): Promise<RouterResult> {
   // 2. OpenRouter Provider (Cloud)
   if (provider === 'openrouter') {
     const activeModel = model || 'meta-llama/llama-3.2-3b-instruct:free';
-    if (apiKey) {
-      try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': 'http://localhost:3000',
-            'X-Title': 'Local Brain Desktop',
-          },
-          body: JSON.stringify({
-            model: activeModel,
-            messages: [
-              ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-              { role: 'user', content: prompt },
-            ],
-            ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
-          }),
-        });
+    const effectiveKey = apiKey || process.env.OPENROUTER_API_KEY;
+    if (!effectiveKey) {
+      return {
+        text: 'Error: No OpenRouter API key provided. Please enter your OpenRouter API key in Settings.',
+        providerName: 'OpenRouter (No Key Configured)',
+        isOffline: false,
+      };
+    }
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${effectiveKey}`,
+          'HTTP-Referer': 'http://localhost:3000',
+          'X-Title': 'Local Brain Desktop',
+        },
+        body: JSON.stringify({
+          model: activeModel,
+          messages: [
+            ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+            { role: 'user', content: prompt },
+          ],
+          ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+        }),
+      });
 
-        if (response.ok) {
-          const data: any = await response.json();
-          const content = data.choices?.[0]?.message?.content;
-          if (content) {
-            return {
-              text: content,
-              providerName: `OpenRouter (${activeModel})`,
-              modelUsed: activeModel,
-              isOffline: false,
-            };
-          }
+      if (response.ok) {
+        const data: any = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (content) {
+          return {
+            text: content,
+            providerName: `OpenRouter (${activeModel})`,
+            modelUsed: activeModel,
+            isOffline: false,
+          };
         }
-      } catch (err) {
-        console.warn('[AI-Router] OpenRouter request failed:', err);
+      } else {
+        const errText = await response.text();
+        return {
+          text: `[OpenRouter Error ${response.status}]: ${errText}`,
+          providerName: `OpenRouter (${activeModel}) Error`,
+          modelUsed: activeModel,
+          isOffline: false,
+        };
       }
+    } catch (err: any) {
+      console.warn('[AI-Router] OpenRouter request failed:', err);
+      return {
+        text: `[OpenRouter Connection Error]: ${err?.message || 'Could not connect to OpenRouter API'}`,
+        providerName: 'OpenRouter Network Error',
+        isOffline: false,
+      };
     }
   }
 
   // 3. xAI (Grok) Provider (Cloud)
   if (provider === 'xai') {
     const activeKey = options.xaiApiKey || apiKey || process.env.XAI_API_KEY;
-    const activeModel = model || 'grok-2-latest';
-    if (activeKey) {
-      try {
-        const response = await fetch('https://api.x.ai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${activeKey}`,
-          },
-          body: JSON.stringify({
-            model: activeModel,
-            messages: [
-              ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-              { role: 'user', content: prompt },
-            ],
-            ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
-            temperature: temperature ?? 0.7,
-            max_tokens: maxTokens ?? 1024,
-          }),
-        });
+    if (!activeKey) {
+      return {
+        text: 'Error: No xAI API key provided. Please enter your xAI API key in Settings or configure XAI_API_KEY in .env.',
+        providerName: 'xAI (No Key Configured)',
+        isOffline: false,
+      };
+    }
 
-        if (response.ok) {
-          const data: any = await response.json();
-          const content = data.choices?.[0]?.message?.content;
-          if (content) {
-            return {
-              text: content,
-              providerName: `xAI (${activeModel})`,
-              modelUsed: activeModel,
-              isOffline: false,
-            };
-          }
-        } else {
-          const errText = await response.text();
-          console.warn('[AI-Router] xAI API returned error:', response.status, errText);
+    // Resolve model: map any legacy grok-2 references to actual available model
+    let activeModel = model || 'grok-4.20-non-reasoning';
+    if (!activeModel || activeModel.startsWith('grok-2') || activeModel === 'grok-beta') {
+      activeModel = 'grok-4.20-non-reasoning';
+    }
+
+    try {
+      const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${activeKey}`,
+        },
+        body: JSON.stringify({
+          model: activeModel,
+          messages: [
+            ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+            { role: 'user', content: prompt },
+          ],
+          ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+          temperature: temperature ?? 0.7,
+          max_tokens: maxTokens ?? 1024,
+        }),
+      });
+
+      if (response.ok) {
+        const data: any = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (content) {
+          return {
+            text: content,
+            providerName: `xAI (${activeModel})`,
+            modelUsed: activeModel,
+            isOffline: false,
+          };
         }
-      } catch (err: any) {
-        console.warn('[AI-Router] xAI request failed:', err?.message || err);
+      } else {
+        const errText = await response.text();
+        console.error('[AI-Router] xAI API returned error:', response.status, errText);
+        let errorMsg = `HTTP ${response.status}`;
+        try {
+          const parsed = JSON.parse(errText);
+          errorMsg = parsed.error?.message || parsed.error || errText;
+        } catch {}
+        return {
+          text: `[xAI API Error ${response.status}]: ${errorMsg}`,
+          providerName: `xAI (${activeModel}) Error`,
+          modelUsed: activeModel,
+          isOffline: false,
+        };
       }
+    } catch (err: any) {
+      console.warn('[AI-Router] xAI request failed:', err?.message || err);
+      return {
+        text: `[xAI Connection Error]: ${err?.message || 'Could not connect to xAI API'}`,
+        providerName: 'xAI Network Error',
+        isOffline: false,
+      };
     }
   }
 
@@ -314,9 +360,23 @@ export async function routeLLM(options: RouterOptions): Promise<RouterResult> {
             isOffline: true,
           };
         }
+      } else {
+        const err = await response.text();
+        return {
+          text: `[LM Studio Error ${response.status}]: ${err}`,
+          providerName: `LM Studio (${activeModel}) Error`,
+          modelUsed: activeModel,
+          isOffline: true,
+        };
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('[AI-Router] LM Studio request failed:', err);
+      return {
+        text: `[LM Studio Offline]: Could not connect to LM Studio at ${cleanUrl}. Start LM Studio and run the local server on port 1234.`,
+        providerName: 'LM Studio Offline',
+        modelUsed: activeModel,
+        isOffline: true,
+      };
     }
   }
 
@@ -368,7 +428,7 @@ export function getAllProvidersStatus() {
     localSLM: {
       available: slmStatus.available,
       modelLoaded: slmStatus.modelLoaded,
-      modelName: slmStatus.modelName || 'Qwen-2.5-3B-Instruct (GGUF)',
+      modelName: slmStatus.modelName || 'gemma-4-e2b-it.Q4_K_M.gguf',
       modelPath: slmStatus.modelPath,
       contextSize: slmStatus.contextSize,
       message: slmStatus.message,
@@ -390,8 +450,14 @@ export function getAllProvidersStatus() {
     },
     xai: {
       available: Boolean(process.env.XAI_API_KEY),
-      defaultModel: 'grok-2-latest',
-      models: ['grok-2-latest', 'grok-2', 'grok-2-vision-1212', 'grok-beta'],
+      defaultModel: 'grok-4.20-non-reasoning',
+      models: [
+        { id: 'grok-4.20-non-reasoning', name: 'Grok 4.20 Non-Reasoning (Fast & Concise - Recommended)' },
+        { id: 'grok-4.20', name: 'Grok 4.20 (Deep Reasoning)' },
+        { id: 'grok-4.3', name: 'Grok 4.3' },
+        { id: 'grok-build-0.1', name: 'Grok Code Fast (Fast Code & Docs)' },
+        { id: 'grok-4.5', name: 'Grok 4.5' },
+      ],
     },
   };
 }

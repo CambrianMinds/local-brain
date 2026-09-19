@@ -111,7 +111,7 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
       : settings?.aiProvider === 'lmstudio'
       ? settings?.chatModel || 'meta-llama-3.2-3b-instruct'
       : settings?.aiProvider === 'xai'
-      ? settings?.xaiModel || 'grok-2-latest'
+      ? settings?.xaiModel || 'grok-4.20-non-reasoning'
       : 'gemini-3.8-flash'
   );
 
@@ -126,7 +126,7 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
     } else if (activeProv === 'lmstudio') {
       setReaderModel(settings?.chatModel || 'meta-llama-3.2-3b-instruct');
     } else if (activeProv === 'xai') {
-      setReaderModel(settings?.xaiModel || 'grok-2-latest');
+      setReaderModel(settings?.xaiModel || 'grok-4.20-non-reasoning');
     } else {
       setReaderModel('gemini-3.8-flash');
     }
@@ -142,7 +142,7 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
     } else if (newProv === 'lmstudio') {
       newModel = settings?.chatModel || 'meta-llama-3.2-3b-instruct';
     } else if (newProv === 'xai') {
-      newModel = settings?.xaiModel || 'grok-2-latest';
+      newModel = settings?.xaiModel || 'grok-4.20-non-reasoning';
     }
     setReaderModel(newModel);
     if (onUpdateSettings && settings) {
@@ -208,13 +208,13 @@ export const DocumentReaderPage: React.FC<DocumentReaderPageProps> = ({
           provider: response.provider || readerProvider,
         },
       ]);
-    } catch (err) {
+    } catch (err: any) {
       setChatMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          text: 'Unable to analyze chunk vectors at this time.',
-          provider: 'Local Engine',
+          text: `[Inference Error]: ${err?.message || 'Unable to connect to AI model. Check your API key or provider status.'}`,
+          provider: `${readerProvider} (Error)`,
         },
       ]);
     } finally {

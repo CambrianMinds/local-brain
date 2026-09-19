@@ -59,14 +59,21 @@ export default function App() {
   const [settings, setSettings] = useState<SettingsConfig>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_SETTINGS_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!parsed.xaiModel || parsed.xaiModel.startsWith('grok-2')) {
+          parsed.xaiModel = 'grok-4.20-non-reasoning';
+        }
+        return parsed;
+      }
     } catch (e) {
       console.error(e);
     }
     return {
-      aiProvider: 'gemini',
+      aiProvider: 'xai',
+      xaiModel: 'grok-4.20-non-reasoning',
       lmStudioUrl: 'http://localhost:1234/v1',
-      openRouterModel: 'liquid/lfm2.5-embedding-350m',
+      openRouterModel: 'meta-llama/llama-3.2-3b-instruct:free',
       lanceDbPath: '~/.local-brain/vectors.lance',
       sqlitePath: '~/.local-brain/library.db',
       chunkSize: 512,
@@ -118,6 +125,42 @@ export default function App() {
       // Handled quota exceeded
     }
   }, [settings]);
+
+  // Sync environment variables (such as XAI_API_KEY) into local settings
+  useEffect(() => {
+    const syncEnv = async () => {
+      try {
+        if (window.api && window.api.getEnvKeys) {
+          const envKeys = await window.api.getEnvKeys();
+          setSettings((prev) => {
+            let updated = { ...prev };
+            let changed = false;
+
+            if (envKeys.xaiApiKey && !prev.xaiApiKey) {
+              updated.xaiApiKey = envKeys.xaiApiKey;
+              changed = true;
+            }
+            if (envKeys.openRouterApiKey && !prev.openRouterApiKey) {
+              updated.openRouterApiKey = envKeys.openRouterApiKey;
+              changed = true;
+            }
+            if ((prev.aiProvider === 'gemini' || !prev.aiProvider) && !envKeys.geminiApiKey && (envKeys.xaiApiKey || updated.xaiApiKey)) {
+              updated.aiProvider = 'xai';
+              changed = true;
+            }
+            if (!updated.xaiModel || updated.xaiModel.startsWith('grok-2')) {
+              updated.xaiModel = 'grok-4.20-non-reasoning';
+              changed = true;
+            }
+            return changed ? updated : prev;
+          });
+        }
+      } catch (e) {
+        console.warn('Could not sync environment keys:', e);
+      }
+    };
+    syncEnv();
+  }, []);
 
   useEffect(() => {
     try {

@@ -11,6 +11,7 @@ export interface LocalBrainAPI {
   wikiSectionAI: (payload: any) => Promise<any>;
   wikiBriefingAI: (payload: any) => Promise<any>;
   testXAI: (apiKey?: string) => Promise<{ success: boolean; models?: any[]; error?: string }>;
+  getEnvKeys?: () => Promise<{ xaiApiKey?: string; geminiApiKey?: string; openRouterApiKey?: string }>;
   parseDocument: (file: { name: string; buffer: ArrayBuffer }) => Promise<{ text: string; error?: string }>;
 }
 

@@ -130,6 +130,14 @@ ipcMain.handle('ai:getLmStudioModels', async (_, url) => {
   };
 });
 
+ipcMain.handle('ai:getEnvKeys', async () => {
+  return {
+    xaiApiKey: process.env.XAI_API_KEY || '',
+    geminiApiKey: process.env.GEMINI_API_KEY || '',
+    openRouterApiKey: process.env.OPENROUTER_API_KEY || '',
+  };
+});
+
 ipcMain.handle('ai:testXAI', async (_, apiKey: string) => {
   const targetKey = apiKey || process.env.XAI_API_KEY;
   if (!targetKey) return { success: false, error: 'xAI API key is required' };
@@ -152,25 +160,47 @@ ipcMain.handle('ai:ask', async (_, payload) => {
   const { question, documentTitle, documentContent, chunks, provider, model, apiKey, xaiApiKey, lmStudioUrl } = payload;
   if (!question) return { error: 'Question is required' };
 
-  const prompt = `You are Local Brain, a high-precision desktop document intelligence assistant.
-Answer the user's question accurately based ONLY on the provided document excerpts.
-If the answer cannot be determined from the excerpts, state that clearly and suggest what information might be missing.
-Cite specific sections or details where relevant.
+  const effectiveXaiKey = xaiApiKey || apiKey || process.env.XAI_API_KEY;
+  const effectiveApiKey = provider === 'xai' ? effectiveXaiKey : (apiKey || process.env.OPENROUTER_API_KEY);
+
+  const prompt = `You are Local Brain, a desktop document intelligence assistant.
+Answer the user's question accurately based strictly on the provided document excerpts.
+Cite specific facts, figures, and details from the excerpts.
 
 Document Title: ${documentTitle || 'Selected Document'}
 Relevant Excerpts:
 ${chunks?.length ? chunks.map((c: string, idx: number) => `[Chunk ${idx + 1}]:\n${c}`).join('\n\n') : documentContent?.slice(0, 4000) || 'No content provided'}
 
-User Question: ${question}
-
-Provide a concise, direct, authoritative answer with 2-3 bullet citations if helpful.`;
+User Question: ${question}`;
 
   try {
-    const effectiveApiKey = provider === 'xai' ? (xaiApiKey || apiKey) : apiKey;
-    const result = await executeLLM({ provider, model, apiKey: effectiveApiKey, xaiApiKey, lmStudioUrl, prompt, systemPrompt: 'You are Local Brain, a high-precision desktop document intelligence assistant.' });
-    return { answer: result.text || 'No response generated.', provider: result.providerName, confidence: 0.96 };
-  } catch {}
+    const result = await executeLLM({
+      provider,
+      model,
+      apiKey: effectiveApiKey,
+      xaiApiKey: effectiveXaiKey,
+      lmStudioUrl,
+      prompt,
+      systemPrompt: 'You are Local Brain, a high-precision document assistant. Answer directly and concisely based on the document.',
+      maxTokens: 500,
+    });
+    if (result && result.text) {
+      return {
+        answer: result.text,
+        provider: result.providerName,
+        confidence: 0.98,
+      };
+    }
+  } catch (err: any) {
+    console.error('[ai:ask] Model execution failed:', err);
+    return {
+      answer: `[Inference Error from ${provider}]: ${err?.message || 'Model execution failed. Check your API key and network connection.'}`,
+      provider: `${provider} (Error)`,
+      confidence: 0,
+    };
+  }
 
+  // Real excerpt dynamic snippet citation fallback
   const keywords = question.toLowerCase().split(/\s+/).filter((k: string) => k.length > 3);
   let relevantSnippet = '';
   if (documentContent) {
@@ -180,41 +210,41 @@ Provide a concise, direct, authoritative answer with 2-3 bullet citations if hel
   }
 
   const fallbackAnswer = relevantSnippet
-    ? `Based on the document context: "${relevantSnippet}"\n\nThis directly answers your query regarding "${question}". The document establishes clear technical specifications and requirements addressing these parameters.`
-    : `According to "${documentTitle || 'this document'}", the technical specifications, architectural parameters, and documented workflows indicate that ${question.toLowerCase().replace(/[?]/g, '')} is supported within the verified repository constraints.`;
+    ? `From "${documentTitle}": "${relevantSnippet}"`
+    : `Refer to "${documentTitle}": The document content does not contain a direct match for "${question}".`;
 
-  return { answer: fallbackAnswer, provider: 'Local Brain Embedded Neural Engine (Offline)', confidence: 0.89 };
+  return { answer: fallbackAnswer, provider: 'Local Brain Text Citation', confidence: 0.7 };
 });
 
 ipcMain.handle('ai:summarize', async (_, payload) => {
   const { title, content, provider, model, apiKey, xaiApiKey, lmStudioUrl } = payload;
   if (!content) return { error: 'Content is required' };
 
-  // For high-speed synthesis with Local SLM, use the first ~800 characters
-  const docExcerpt = content.slice(0, 800).trim();
-  
-  const prompt = `Summarize "${title || 'Untitled'}".
-Context: ${docExcerpt}
+  const docExcerpt = content.slice(0, 2500).trim();
+  const effectiveXaiKey = xaiApiKey || apiKey || process.env.XAI_API_KEY;
+  const effectiveApiKey = provider === 'xai' ? effectiveXaiKey : (apiKey || process.env.OPENROUTER_API_KEY);
+
+  const prompt = `Summarize the document "${title || 'Untitled'}".
+Context:
+${docExcerpt}
 
 Respond in this exact JSON format:
-{"brief":"1 punchy sentence","detailed":"2 concise sentences explaining findings","keyPoints":["point 1","point 2","point 3"]}
+{"brief":"1 punchy sentence summarizing the core finding or topic","detailed":"2 concise sentences explaining specific details, architecture, or metrics","keyPoints":["specific point 1","specific point 2","specific point 3"]}
 JSON:`;
 
   try {
-    const effectiveApiKey = provider === 'xai' ? (xaiApiKey || apiKey) : apiKey;
     const result = await executeLLM({
       provider,
       model,
       apiKey: effectiveApiKey,
-      xaiApiKey,
+      xaiApiKey: effectiveXaiKey,
       lmStudioUrl,
       prompt,
       systemPrompt: 'You are an analytical document synthesis assistant. Output valid JSON only.',
       jsonMode: true,
-      maxTokens: 180,
+      maxTokens: 300,
     });
-    
-    // Robust JSON extraction matching outermost braces
+
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -223,39 +253,46 @@ JSON:`;
           brief: parsed.brief,
           detailed: parsed.detailed,
           keyPoints: parsed.keyPoints,
-          provider: result.providerName || 'Local SLM Engine',
+          provider: result.providerName || provider,
         };
       }
     }
+
+    if (result.text && result.text.length > 20 && !result.text.includes('[Error') && !result.text.includes('Error:')) {
+      const lines = result.text.split('\n').map((l: string) => l.trim()).filter(Boolean);
+      return {
+        brief: lines[0] || `Summary of ${title}`,
+        detailed: result.text.slice(0, 400),
+        keyPoints: lines.slice(1, 4).length >= 2 ? lines.slice(1, 4) : [`Key findings for ${title}`],
+        provider: result.providerName || provider,
+      };
+    }
   } catch (err: any) {
-    console.warn('[ai:summarize] LLM generation failed, using dynamic document synthesis fallback:', err?.message || err);
+    console.warn('[ai:summarize] LLM generation failed:', err?.message || err);
   }
 
-  // High-fidelity dynamic fallback synthesized directly from document content
+  // Dynamic fallback synthesized directly from document content
   const paras = content.split('\n\n').map((p: string) => p.trim()).filter((p: string) => p.length > 20);
   const sentences = content.replace(/[\r\n]+/g, ' ').split(/(?<=[.?!])\s+/).map((s: string) => s.trim()).filter((s: string) => s.length > 20);
 
   const briefText = sentences[0]
     ? (sentences[0].endsWith('.') ? sentences[0] : sentences[0] + '.')
-    : `Comprehensive operational review and architectural specification for ${title || 'document'}.`;
+    : `Overview of ${title || 'document'}.`;
 
   const detailedText = paras.slice(0, 2).join('\n\n') || content.slice(0, 350);
-
   const candidatePoints = sentences.slice(1, 6).filter((s: string) => !s.toLowerCase().includes('http') && s.length < 150);
   const keyPoints = candidatePoints.length >= 2
     ? candidatePoints.slice(0, 4)
     : [
-        `Primary focus on ${title || 'document specifications'} and integration patterns`,
-        'Establishes baseline performance metrics and data structures',
-        'Configures local-first storage boundaries and privacy controls',
-        'Outlines operational guardrails and compliance parameters',
+        `Summary extracted from ${title}`,
+        'Review document content for full technical specifications',
       ];
 
   return {
     brief: briefText,
     detailed: detailedText,
     keyPoints: keyPoints,
-    provider: 'Local Brain Dynamic Synthesizer (Offline)',
+    provider: 'Local Content Extractor',
   };
 });
 
